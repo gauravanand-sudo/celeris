@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sys, os, dataclasses
+import sys, os, dataclasses, subprocess, json
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
@@ -24,6 +24,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Path to the compiled C++ binary
+_BIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'celeris')
+
+
+# ── Benchmark endpoint (real C++ engine) ─────────────────────────────────────
+
+class BenchmarkRequest(BaseModel):
+    num_threads: int = 3
+    num_events: int = 200
+
+
+@app.post("/api/benchmark")
+def run_benchmark(req: BenchmarkRequest):
+    num_threads = max(1, min(req.num_threads, 8))
+    num_events  = max(10, min(req.num_events, 2000))
+
+    if not os.path.isfile(_BIN):
+        raise HTTPException(status_code=503, detail={
+            "error": "C++ binary not found. See README to compile: g++ -std=c++20 -O3 -pthread -Iinclude -o build/celeris src/main.cpp"
+        })
+
+    try:
+        result = subprocess.run(
+            [_BIN, '--json', '--threads', str(num_threads), '--events', str(num_events)],
+            capture_output=True, text=True, timeout=60
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail={"error": "Benchmark timed out (>60s)"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail={
+            "error": f"Binary exited with code {result.returncode}",
+            "stderr": result.stderr[:500]
+        })
+
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail={
+            "error": f"Failed to parse engine output: {e}",
+            "raw": result.stdout[:500]
+        })
+
+
+# ── RTL structural analysis endpoint ─────────────────────────────────────────
 
 class SimRequest(BaseModel):
     verilog: str
@@ -31,20 +78,13 @@ class SimRequest(BaseModel):
 
 
 def _validate(module, verilog: str) -> list[str]:
-    """Return critical parse errors that should block simulation."""
     errors = list(module.errors)
-
-    if 'endmodule' not in verilog and "Missing 'endmodule'" not in ' '.join(errors):
+    if 'endmodule' not in verilog and not any('endmodule' in e for e in errors):
         errors.append("Missing 'endmodule' — module is not closed")
-
-    if not module.signals:
-        if not any('signal' in e for e in errors):
-            errors.append("No signals found — check port declarations (input/output/wire/reg)")
-
-    if not module.processes:
-        if not any('process' in e for e in errors):
-            errors.append("No processes found — no always blocks or assign statements detected")
-
+    if not module.signals and not any('signal' in e for e in errors):
+        errors.append("No signals found — check port declarations (input/output/wire/reg)")
+    if not module.processes and not any('process' in e for e in errors):
+        errors.append("No processes found — no always blocks or assign statements detected")
     return errors
 
 
@@ -53,13 +93,11 @@ def run_simulation(req: SimRequest):
     if not req.verilog.strip():
         raise HTTPException(status_code=400, detail={
             "stage": "parse",
-            "errors": ["Empty Verilog input — paste a Verilog module to analyze"],
+            "errors": ["Empty Verilog input"],
         })
 
     try:
-        # ── Step 1: Parse ──────────────────────────────────────────
         module = parse(req.verilog)
-
         critical_errors = _validate(module, req.verilog)
         if critical_errors:
             raise HTTPException(status_code=422, detail={
@@ -68,11 +106,8 @@ def run_simulation(req: SimRequest):
                 "warnings": module.warnings,
             })
 
-        # ── Step 2: Simulate ───────────────────────────────────────
         cycles = max(1, min(req.cycles, 100_000))
         results = simulate(module, cycles)
-
-        # ── Step 3: Analyze ────────────────────────────────────────
         analysis = analyze(module, results)
 
         return {

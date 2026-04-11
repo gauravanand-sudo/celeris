@@ -569,22 +569,145 @@ static double bench_shared_sharded(int num_threads, int iters)
 }
 
 // ============================================================================
+// JSON mode helpers
+// ============================================================================
+
+struct RunResult {
+    uint64_t total_events{0};
+    uint64_t delta_cycles{0};
+    uint64_t signal_updates{0};
+    uint64_t process_evaluations{0};
+    uint64_t barrier_waits{0};
+    uint64_t contention_events{0};
+    uint64_t nba_updates{0};
+    double   wall_ms{0};
+    double   events_per_sec{0};
+};
+
+static RunResult run_modern_capture(int num_threads, SyncMode mode,
+                                    int num_events, uint64_t sim_end)
+{
+    SimulationEngine engine(num_threads, mode);
+    populate_engine(engine, num_events);
+    auto t0 = Clock::now();
+    engine.run_until(sim_end);
+    auto t1 = Clock::now();
+    std::chrono::duration<double> elapsed = t1 - t0;
+    const auto& p = engine.profiler();
+    return RunResult{
+        p.total_events.load(),
+        p.delta_cycles.load(),
+        p.signal_updates.load(),
+        p.process_evaluations.load(),
+        p.barrier_waits.load(),
+        p.contention_events.load(),
+        p.nba_updates.load(),
+        elapsed.count() * 1000.0,
+        p.events_per_second(elapsed)
+    };
+}
+
+static void emit_run(std::ostream& out, const RunResult& r)
+{
+    out << "{"
+        << "\"total_events\":"        << r.total_events        << ","
+        << "\"delta_cycles\":"        << r.delta_cycles        << ","
+        << "\"signal_updates\":"      << r.signal_updates      << ","
+        << "\"process_evaluations\":" << r.process_evaluations << ","
+        << "\"barrier_waits\":"       << r.barrier_waits       << ","
+        << "\"contention_events\":"   << r.contention_events   << ","
+        << "\"nba_updates\":"         << r.nba_updates         << ","
+        << "\"wall_ms\":"             << std::fixed << std::setprecision(3) << r.wall_ms << ","
+        << "\"events_per_sec\":"      << std::setprecision(0)  << r.events_per_sec
+        << "}";
+}
+
+static void run_json_mode(int num_threads, int num_events, uint64_t sim_end)
+{
+    // Experiment 1 — granularity
+    auto coarse = run_modern_capture(num_threads, SyncMode::COARSE_GRAINED, num_events, sim_end);
+    auto fine   = run_modern_capture(num_threads, SyncMode::FINE_GRAINED,   num_events, sim_end);
+    // Experiment 2 — primitive  (reuse fine from exp1)
+    auto atomic = run_modern_capture(num_threads, SyncMode::ATOMIC,         num_events, sim_end);
+    // Experiment 3 — flag primitive
+    double flag_mutex = bench_mutex_flag(    std::min(num_threads, FLAG_THREADS), FLAG_ITERS);
+    double flag_cas   = bench_atomic_cas(    std::min(num_threads, FLAG_THREADS), FLAG_ITERS);
+    double flag_tas   = bench_atomic_flag_tas(std::min(num_threads, FLAG_THREADS), FLAG_ITERS);
+    // Experiment 4 — shared variable contention
+    double sv_mutex   = bench_shared_mutex(  std::min(num_threads, SHARED_THREADS), SHARED_ITERS);
+    double sv_atomic  = bench_shared_atomic( std::min(num_threads, SHARED_THREADS), SHARED_ITERS);
+    double sv_sharded = bench_shared_sharded(std::min(num_threads, SHARED_THREADS), SHARED_ITERS);
+
+    std::cout << "{"
+        << "\"config\":{"
+            << "\"num_threads\":" << num_threads << ","
+            << "\"num_events\":"  << num_events  << ","
+            << "\"sim_end\":"     << sim_end
+        << "},"
+        << "\"exp1\":{"
+            << "\"title\":\"Lock Granularity\","
+            << "\"subtitle\":\"1 global mutex vs 1 mutex per signal (same primitive)\","
+            << "\"coarse\":"; emit_run(std::cout, coarse);
+    std::cout << ",\"fine\":";   emit_run(std::cout, fine);
+    std::cout << "},"
+        << "\"exp2\":{"
+            << "\"title\":\"Sync Primitive\","
+            << "\"subtitle\":\"Per-signal shared_mutex vs per-signal atomic (same granularity)\","
+            << "\"fine_mutex\":"; emit_run(std::cout, fine);
+    std::cout << ",\"atomic\":"; emit_run(std::cout, atomic);
+    std::cout << "},"
+        << "\"exp3\":{"
+            << "\"title\":\"Flag Primitive — Process Activation Hot Path\","
+            << "\"subtitle\":\"N threads race to set a flag exactly once per round\","
+            << "\"mutex_flag\":"   << std::setprecision(0) << flag_mutex << ","
+            << "\"atomic_cas\":"   << flag_cas   << ","
+            << "\"atomic_flag\":"  << flag_tas
+        << "},"
+        << "\"exp4\":{"
+            << "\"title\":\"Shared Variable Contention\","
+            << "\"subtitle\":\"All threads increment ONE counter on every iteration\","
+            << "\"mutex\":"   << sv_mutex   << ","
+            << "\"atomic\":"  << sv_atomic  << ","
+            << "\"sharded\":" << sv_sharded
+        << "}"
+        << "}" << std::endl;
+}
+
+// ============================================================================
 // main
 // ============================================================================
 int main(int argc, char* argv[])
 {
-    print_banner();
-
     constexpr int      NUM_THREADS = 3;
     constexpr int      NUM_EVENTS  = 200;
     constexpr uint64_t SIM_END     = 5000;
 
-    int num_events = NUM_EVENTS;
-    if (argc > 1) {
-        try { num_events = std::stoi(argv[1]); } catch (...) {}
+    bool json_mode = false;
+    int  num_threads = NUM_THREADS;
+    int  num_events  = NUM_EVENTS;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string a = argv[i];
+        if (a == "--json") {
+            json_mode = true;
+        } else if ((a == "--threads" || a == "-t") && i + 1 < argc) {
+            try { num_threads = std::clamp(std::stoi(argv[++i]), 1, 16); } catch (...) {}
+        } else if ((a == "--events" || a == "-e") && i + 1 < argc) {
+            try { num_events = std::clamp(std::stoi(argv[++i]), 10, 10000); } catch (...) {}
+        } else {
+            // legacy: first positional arg = num_events
+            try { num_events = std::stoi(a); } catch (...) {}
+        }
     }
 
-    std::cout << "\n  Config: " << NUM_THREADS << " worker threads, "
+    if (json_mode) {
+        run_json_mode(num_threads, num_events, SIM_END);
+        return 0;
+    }
+
+    print_banner();
+
+    std::cout << "\n  Config: " << num_threads << " worker threads, "
               << num_events << " seed events, simulate until t=" << SIM_END
               << "\n" << std::flush;
 
@@ -598,11 +721,11 @@ int main(int argc, char* argv[])
     std::cout << "  Constant:  synchronization primitive = std::mutex\n\n";
 
     std::cout << "  Run A — COARSE_GRAINED  (1 global std::mutex for all signals)\n\n";
-    double eps_coarse = run_modern(NUM_THREADS, SyncMode::COARSE_GRAINED,
+    double eps_coarse = run_modern(num_threads, SyncMode::COARSE_GRAINED,
                                    num_events, SIM_END);
 
     std::cout << "\n  Run B — FINE_GRAINED  (1 std::shared_mutex per signal)\n\n";
-    double eps_fine   = run_modern(NUM_THREADS, SyncMode::FINE_GRAINED,
+    double eps_fine   = run_modern(num_threads, SyncMode::FINE_GRAINED,
                                    num_events, SIM_END);
 
     print_table("Experiment 1 result — granularity effect:", {
@@ -626,10 +749,10 @@ int main(int argc, char* argv[])
 
     std::cout << "  Run B — FINE_GRAINED  (per-signal std::shared_mutex)\n\n";
     // Reuse eps_fine from above (same config).
-    run_modern(NUM_THREADS, SyncMode::FINE_GRAINED, num_events, SIM_END, false);
+    run_modern(num_threads, SyncMode::FINE_GRAINED, num_events, SIM_END, false);
 
     std::cout << "\n  Run C — ATOMIC  (per-signal std::atomic, zero mutex)\n\n";
-    double eps_atomic = run_modern(NUM_THREADS, SyncMode::ATOMIC,
+    double eps_atomic = run_modern(num_threads, SyncMode::ATOMIC,
                                    num_events, SIM_END);
 
     print_table("Experiment 2 result — primitive effect:", {
@@ -766,7 +889,7 @@ int main(int argc, char* argv[])
     sep("STRATEGY PATTERN — Runtime Swap Demo");
     std::cout << "  Same SimulationEngine instance; strategy swapped between runs.\n\n";
     {
-        SimulationEngine engine(NUM_THREADS, SyncMode::FINE_GRAINED);
+        SimulationEngine engine(num_threads, SyncMode::FINE_GRAINED);
         populate_engine(engine, num_events);
 
         std::cout << "  Active: " << engine.strategy().name() << "\n";
@@ -791,7 +914,7 @@ int main(int argc, char* argv[])
     std::cout << "    - Two coarse global mutexes (event_lock + signal_lock)\n\n";
 
     {
-        LegacySimEngine legacy(NUM_THREADS);
+        LegacySimEngine legacy(num_threads);
         populate_legacy(legacy, num_events);
 
         auto t0 = Clock::now();
