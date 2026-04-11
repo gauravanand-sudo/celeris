@@ -1,13 +1,18 @@
 """
 simulator.py — Structural simulation engine for Celeris RTL Simulator.
-
-Does not evaluate logic. Propagates signal activations through the
-connectivity graph to produce activation counts used for hot-path analysis.
 """
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Set
 from rtl_parser import ParsedModule, Process
+import re
+
+
+@dataclass
+class RegionStats:
+    name: str           # Active, NBA, Postponed
+    activations: int
+    description: str
 
 
 @dataclass
@@ -16,101 +21,130 @@ class SimResults:
     signal_activations: Dict[str, int]
     process_activations: Dict[str, int]
     delta_cycles_total: int
+    max_queue_depth: int
+    avg_delta_per_cycle: float
+    region_stats: List[RegionStats]
+    clock_signals: List[str]
+    reset_signals: List[str]
+    event_log: List[str]        # last N notable simulation events
 
 
 def simulate(module: ParsedModule, num_cycles: int = 500) -> SimResults:
-    """
-    Structurally simulate a parsed module for num_cycles clock cycles.
-
-    Algorithm:
-    - Build a sensitivity map: signal_name -> list of processes sensitive to it.
-    - Each cycle: toggle clock signals, fire sensitive processes, propagate
-      activations through driven signals recursively (depth-limited to 20).
-    - First 5 cycles: also activate reset signals.
-    - Every 10 cycles: toggle other input signals as stimulus.
-    - Track signal_activations and process_activations counts.
-    """
-
     signal_activations: Dict[str, int] = {name: 0 for name in module.signals}
     process_activations: Dict[str, int] = {p.name: 0 for p in module.processes}
     delta_cycles_total = 0
+    max_queue_depth = 0
+    event_log: List[str] = []
 
-    # Build sensitivity map: signal -> processes sensitive to it
+    # Region counters (IEEE 1800-2017 scheduling regions)
+    region_active = 0      # combinational + sequential process evaluations
+    region_nba = 0         # non-blocking assignment updates (<=)
+    region_postponed = 0   # $monitor-style reads (output signals sampled)
+
+    # Build sensitivity map
     sens_map: Dict[str, List[Process]] = {}
     for proc in module.processes:
         for sig_name in proc.sensitivity:
-            if sig_name not in sens_map:
-                sens_map[sig_name] = []
-            sens_map[sig_name].append(proc)
+            sens_map.setdefault(sig_name, []).append(proc)
 
     # Categorize signals
-    clock_signals: Set[str] = set()
-    reset_signals: Set[str] = set()
+    clock_sigs: Set[str] = set()
+    reset_sigs: Set[str] = set()
     other_inputs: Set[str] = set()
 
     for name, sig in module.signals.items():
         lower = name.lower()
         if lower in ('clk', 'clock') or lower.startswith('clk_') or lower.endswith('_clk'):
-            clock_signals.add(name)
-        elif lower in ('rst', 'reset', 'rst_n', 'reset_n') or lower.startswith('rst'):
-            reset_signals.add(name)
+            clock_sigs.add(name)
+        elif re.search(r'\brst\b|\breset\b|^rst_|_rst$|^rst$', lower):
+            reset_sigs.add(name)
         elif sig.kind == 'input':
             other_inputs.add(name)
 
-    # If no clock found, treat any input as potential driver
-    if not clock_signals:
+    if not clock_sigs:
         for name, sig in module.signals.items():
-            if sig.kind == 'input' and name not in reset_signals:
-                clock_signals.add(name)
+            if sig.kind == 'input' and name not in reset_sigs:
+                clock_sigs.add(name)
 
-    def fire_process(proc: Process, visited_procs: Set[str], depth: int, delta_count: List[int]):
-        """Fire a process: record activation, propagate to driven signals."""
-        if depth > 20:
+    def fire_process(proc: Process, visited: Set[str], depth: int, queue: List[int]):
+        if depth > 20 or proc.name in visited:
             return
-        if proc.name in visited_procs:
-            return
-        visited_procs.add(proc.name)
+        visited.add(proc.name)
         process_activations[proc.name] = process_activations.get(proc.name, 0) + 1
-        delta_count[0] += 1
+        queue[0] += 1
 
-        for driven_sig in proc.drives:
-            activate_signal(driven_sig, visited_procs, depth + 1, delta_count)
+        nonlocal region_active, region_nba, region_postponed
+        if proc.kind == 'sequential':
+            region_nba += 1          # sequential uses non-blocking <=
+        else:
+            region_active += 1       # combinational resolves in Active region
 
-    def activate_signal(sig_name: str, visited_procs: Set[str], depth: int, delta_count: List[int]):
-        """Activate a signal: record activation, fire sensitive processes."""
+        for driven in proc.drives:
+            activate_signal(driven, visited, depth + 1, queue)
+
+    def activate_signal(sig: str, visited: Set[str], depth: int, queue: List[int]):
         if depth > 20:
             return
-        if sig_name in signal_activations:
-            signal_activations[sig_name] += 1
-        else:
-            signal_activations[sig_name] = 1
+        signal_activations[sig] = signal_activations.get(sig, 0) + 1
+        queue[0] += 1
 
-        for proc in sens_map.get(sig_name, []):
-            fire_process(proc, visited_procs, depth + 1, delta_count)
+        nonlocal region_postponed
+        # Output signals sampled at end of time step (Postponed region)
+        if sig in module.signals and module.signals[sig].kind in ('output',):
+            region_postponed += 1
+
+        for proc in sens_map.get(sig, []):
+            fire_process(proc, visited, depth + 1, queue)
 
     for cycle in range(num_cycles):
-        visited_procs: Set[str] = set()
-        delta_count = [0]
+        visited: Set[str] = set()
+        queue = [0]
 
-        # Toggle clock signals every cycle
-        for clk_name in clock_signals:
-            activate_signal(clk_name, visited_procs, 0, delta_count)
+        for clk in clock_sigs:
+            activate_signal(clk, visited, 0, queue)
 
-        # Activate reset signals in first 5 cycles
         if cycle < 5:
-            for rst_name in reset_signals:
-                activate_signal(rst_name, visited_procs, 0, delta_count)
+            for rst in reset_sigs:
+                activate_signal(rst, visited, 0, queue)
 
-        # Toggle other input signals every 10 cycles as stimulus
         if cycle % 10 == 0:
-            for inp_name in other_inputs:
-                activate_signal(inp_name, visited_procs, 0, delta_count)
+            for inp in other_inputs:
+                activate_signal(inp, visited, 0, queue)
 
-        delta_cycles_total += delta_count[0]
+        depth = queue[0]
+        delta_cycles_total += depth
+        if depth > max_queue_depth:
+            max_queue_depth = depth
+
+        # Log notable cycles
+        if cycle == 0:
+            event_log.append(f"[T=0] Reset + clock edge — {depth} events queued, {len(visited)} processes fired")
+        elif cycle == 5:
+            event_log.append(f"[T=5] Reset released — normal operation begins")
+        elif cycle == 10:
+            event_log.append(f"[T=10] Stimulus inputs toggled — {depth} propagation events")
+        elif cycle == num_cycles // 2:
+            event_log.append(f"[T={cycle}] Mid-sim — {depth} events this cycle")
+        elif cycle == num_cycles - 1:
+            event_log.append(f"[T={cycle}] Final cycle — {depth} events, simulation complete")
+
+    avg_delta = delta_cycles_total / num_cycles if num_cycles > 0 else 0
+
+    region_stats = [
+        RegionStats("Active",    region_active,    "Combinational logic evaluation + blocking assignments"),
+        RegionStats("NBA",       region_nba,       "Non-blocking assignment (<=) updates to registers"),
+        RegionStats("Postponed", region_postponed, "Output signal sampling ($monitor / $strobe)"),
+    ]
 
     return SimResults(
         cycles=num_cycles,
         signal_activations=signal_activations,
         process_activations=process_activations,
         delta_cycles_total=delta_cycles_total,
+        max_queue_depth=max_queue_depth,
+        avg_delta_per_cycle=round(avg_delta, 2),
+        region_stats=region_stats,
+        clock_signals=sorted(clock_sigs),
+        reset_signals=sorted(reset_sigs),
+        event_log=event_log,
     )
