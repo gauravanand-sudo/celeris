@@ -1,6 +1,22 @@
 # Celeris — Open-Source Multicore Event-Driven Simulation Engine
 
+[![Build](https://github.com/gauravanand-sudo/celeris/actions/workflows/build.yml/badge.svg)](https://github.com/gauravanand-sudo/celeris/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+
 An open-source C++20 multicore event-driven simulation engine built from scratch. Models the architecture of hardware simulation schedulers — time-wheel event scheduling, delta-cycle propagation, and parallel region execution — with a full synchronization benchmark suite. Demonstrates the complete engineering journey from coarse-grained locking to fine-grained locking to lock-free atomics, with four controlled experiments that isolate exactly one variable at a time.
+
+## Quick Start
+
+```bash
+git clone https://github.com/gauravanand-sudo/celeris.git
+cd celeris
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+./build/celeris
+```
+
+**Requirements:** C++20 compiler (GCC 11+, Clang 14+), CMake 3.20+
 
 ---
 

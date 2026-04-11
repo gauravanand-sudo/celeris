@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: celeris
+    runtime: python
+    buildCommand: pip install -r web/requirements.txt
+    startCommand: uvicorn web.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHONPATH
+        value: .
