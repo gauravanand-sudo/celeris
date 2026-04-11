@@ -139,13 +139,22 @@
 
     /* ── Heat rows ── */
     .heat-list { display: flex; flex-direction: column; gap: 4px; }
-    .heat-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: var(--radius); transition: background 0.1s; min-width: 0; }
+    .heat-row { display: flex; align-items: center; gap: 8px; padding: 6px 6px; border-radius: var(--radius); transition: background 0.1s; min-width: 0; overflow: hidden; }
     .heat-row:hover { background: var(--surface2); }
-    .heat-name { font-family: var(--font-mono); font-size: 12px; color: var(--text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 130px; flex-shrink: 0; }
-    .heat-bar-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 4px; overflow: hidden; min-width: 0; }
+    .heat-name { font-family: var(--font-mono); font-size: 12px; color: var(--text-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 110px; flex-shrink: 0; }
+    .heat-bar-track { flex: 1; height: 7px; background: var(--surface3); border-radius: 4px; overflow: hidden; min-width: 40px; }
     .heat-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-    .heat-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-    .heat-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 50px; text-align: right; }
+    .heat-meta { display: flex; align-items: center; gap: 5px; flex-shrink: 0; min-width: 0; }
+    .heat-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); min-width: 52px; text-align: right; flex-shrink: 0; }
+
+    /* ── Warnings panel ── */
+    .warnings-panel { background: #1e1800; border: 1px solid #4a3800; border-radius: 6px; overflow: hidden; }
+    .warnings-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #2a2000; border-bottom: 1px solid #4a3800; }
+    .warnings-header .title { font-size: 12px; font-weight: 700; color: var(--orange); }
+    .warnings-header .count { font-size: 11px; color: #a07020; margin-left: auto; font-family: var(--font-mono); }
+    .warning-item { display: flex; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #2a2200; font-size: 12px; color: #c09040; line-height: 1.5; }
+    .warning-item:last-child { border-bottom: none; }
+    .warning-num { font-family: var(--font-mono); font-size: 11px; color: #604820; flex-shrink: 0; padding-top: 1px; }
 
     /* ── Badges ── */
     .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
@@ -416,9 +425,16 @@ async function runSimulation() {
     if (resp.status === 422) {
       const body = await resp.json();
       const errors = body.detail?.errors || [body.detail || 'Parse failed'];
+      const warns  = body.detail?.warnings || [];
       stepState(0, 'error', `failed after ${t1-t0}ms`);
 
       const panel = document.getElementById('results-panel');
+      const warnHtml = warns.length > 0 ? `
+        <div class="warnings-panel" style="margin-top:10px">
+          <div class="warnings-header"><span class="title">⚠ ${warns.length} Warning${warns.length>1?'s':''}</span></div>
+          <div>${warns.map((w,i)=>`<div class="warning-item"><div class="warning-num">${i+1}.</div><div>${esc(w)}</div></div>`).join('')}</div>
+        </div>` : '';
+
       panel.innerHTML = `
         <div class="parse-error-panel">
           <div class="parse-error-header">
@@ -433,12 +449,12 @@ async function runSimulation() {
                 <div class="parse-error-msg">${esc(e)}</div>
               </div>`).join('')}
             <div class="parse-error-hint">
-              💡 Fix the syntax above and try again. Valid Verilog must have: <code>module ... endmodule</code>,
-              at least one port declaration (<code>input</code>/<code>output</code>), and at least one process
-              (<code>always @</code> or <code>assign</code>).
+              💡 Fix the syntax above and try again. Valid Verilog needs: <code>module … endmodule</code>,
+              port declarations (<code>input</code>/<code>output</code>/<code>wire</code>/<code>reg</code>),
+              and at least one process (<code>always @(…)</code> or <code>assign</code>).
             </div>
           </div>
-        </div>`;
+        </div>${warnHtml}`;
 
       setStatus('error', `✖ Parse error — ${errors[0].slice(0, 80)}`);
       return;
@@ -487,6 +503,19 @@ async function runSimulation() {
 function renderResults(data) {
   const panel = document.getElementById('results-panel');
   let h = '';
+
+  // ── Warnings (non-fatal) ──────────────────────────────────────
+  const warns = data.warnings || [];
+  if (warns.length > 0) {
+    h += `
+    <div class="warnings-panel">
+      <div class="warnings-header">
+        <span class="title">⚠ ${warns.length} Warning${warns.length>1?'s':''}</span>
+        <span class="count">${warns.length} issue${warns.length>1?'s':''} detected</span>
+      </div>
+      <div>${warns.map((w,i)=>`<div class="warning-item"><div class="warning-num">${i+1}.</div><div>${esc(w)}</div></div>`).join('')}</div>
+    </div>`;
+  }
 
   // ── Module overview ──────────────────────────────────────────
   h += `

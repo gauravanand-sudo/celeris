@@ -3,10 +3,11 @@ rtl_parser.py — Verilog subset parser for Celeris RTL Simulator.
 
 Parses signals (input/output/inout/wire/reg) and processes
 (assign statements and always blocks) from a Verilog module.
+Reports syntax errors with line numbers; non-fatal issues as warnings.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 
@@ -32,6 +33,7 @@ class ParsedModule:
     signals: Dict[str, Signal]
     processes: List[Process]
     errors: List[str]
+    warnings: List[str] = field(default_factory=list)
 
 
 # Keywords and tokens that are not signal identifiers
@@ -46,21 +48,27 @@ _KEYWORDS = frozenset({
 })
 
 
-def _strip_comments(code: str) -> str:
-    """Remove // line comments and /* */ block comments from Verilog source."""
+def _line_of(code: str, pos: int) -> int:
+    """Return 1-based line number for character position."""
+    return code[:pos].count('\n') + 1
+
+
+def _strip_comments(code: str) -> Tuple[str, Dict[int, int]]:
+    """
+    Remove // and /* */ comments. Returns cleaned code and a char-to-original-line map.
+    Preserves newlines so line numbers stay accurate.
+    """
     result = []
     i = 0
     length = len(code)
     while i < length:
-        # Block comment
         if i + 1 < length and code[i] == '/' and code[i + 1] == '*':
             i += 2
             while i + 1 < length and not (code[i] == '*' and code[i + 1] == '/'):
                 if code[i] == '\n':
                     result.append('\n')
                 i += 1
-            i += 2  # skip */
-        # Line comment
+            i += 2
         elif i + 1 < length and code[i] == '/' and code[i + 1] == '/':
             i += 2
             while i < length and code[i] != '\n':
@@ -72,7 +80,6 @@ def _strip_comments(code: str) -> str:
 
 
 def _parse_width(msb: str, lsb: str) -> int:
-    """Compute bit-width from MSB and LSB strings."""
     try:
         return int(msb) - int(lsb) + 1
     except (ValueError, TypeError):
@@ -80,7 +87,6 @@ def _parse_width(msb: str, lsb: str) -> int:
 
 
 def _extract_identifiers(expr: str) -> List[str]:
-    """Extract all valid Verilog identifiers from an expression, excluding keywords."""
     raw = re.findall(r'\b([A-Za-z_][A-Za-z0-9_$]*)\b', expr)
     seen = set()
     result = []
@@ -92,10 +98,6 @@ def _extract_identifiers(expr: str) -> List[str]:
 
 
 def _extract_lhs_names(stmt: str) -> List[str]:
-    """
-    Extract signal names from the LHS of blocking/non-blocking assignments.
-    Handles: name, name[idx], name[msb:lsb].
-    """
     names = []
     for m in re.finditer(r'\b([A-Za-z_][A-Za-z0-9_$]*)\b\s*(?:\[[^\]]*\])?\s*(?:<=|=)', stmt):
         name = m.group(1)
@@ -105,11 +107,6 @@ def _extract_lhs_names(stmt: str) -> List[str]:
 
 
 def _parse_sensitivity_list(sens_str: str) -> Tuple[str, List[str]]:
-    """
-    Parse an always @(...) sensitivity list.
-    Returns (kind, [signal_names]).
-    kind is 'sequential' if posedge/negedge present, 'combinational' otherwise.
-    """
     sens_str = sens_str.strip()
     if sens_str == '*':
         return 'combinational', []
@@ -135,15 +132,11 @@ def _parse_sensitivity_list(sens_str: str) -> Tuple[str, List[str]]:
     return kind, signals
 
 
-def _find_always_blocks(code: str) -> List[Tuple[str, str]]:
+def _find_always_blocks(code: str) -> List[Tuple[str, str, int]]:
     """
-    Find all always blocks in the code.
-    Returns list of (sensitivity_list_string, body_string) tuples.
-    Uses character-by-character scanning for balanced begin/end matching,
-    carefully skipping endmodule and endcase.
+    Find all always blocks. Returns list of (sensitivity_string, body_string, line_no).
     """
     results = []
-    # Match always @(...)
     always_pat = re.compile(r'\balways\s*@\s*\(', re.DOTALL)
 
     pos = 0
@@ -152,8 +145,8 @@ def _find_always_blocks(code: str) -> List[Tuple[str, str]]:
         if not m:
             break
 
-        # Extract sensitivity list between the opening paren (already consumed) and matching close paren
-        paren_start = m.end() - 1  # position of '('
+        line_no = _line_of(code, m.start())
+        paren_start = m.end() - 1
         depth = 0
         i = paren_start
         while i < len(code):
@@ -165,21 +158,17 @@ def _find_always_blocks(code: str) -> List[Tuple[str, str]]:
                     break
             i += 1
         sens_content = code[paren_start + 1:i]
-        body_start = i + 1  # after the closing ')'
+        body_start = i + 1
 
-        # Skip whitespace to find begin or first statement
         j = body_start
         while j < len(code) and code[j] in ' \t\n\r':
             j += 1
 
-        # Check if body starts with 'begin'
         if code[j:j + 5] == 'begin':
-            # Find matching end using character scan, skipping endmodule/endcase
             k = j + 5
             begin_depth = 1
             body_end = -1
             while k < len(code) and begin_depth > 0:
-                # Check for endmodule or endcase (do NOT count as end)
                 if code[k:k + 9] == 'endmodule':
                     break
                 if code[k:k + 7] == 'endcase':
@@ -201,39 +190,25 @@ def _find_always_blocks(code: str) -> List[Tuple[str, str]]:
                 body_end = k
             body = code[j + 5:body_end - 3].strip()
         else:
-            # Single statement: read until semicolon
             k = j
             while k < len(code) and code[k] != ';':
                 k += 1
             body = code[j:k + 1].strip()
             body_end = k + 1
 
-        results.append((sens_content, body))
+        results.append((sens_content, body, line_no))
         pos = body_end if body_end > m.start() else m.end()
 
     return results
 
 
 def _parse_signals(code: str) -> Dict[str, Signal]:
-    """
-    Parse all signal declarations from the Verilog code.
-
-    Two passes:
-    1. Module header port list: extract individual port declarations from the
-       parenthesised argument list of the module statement. Each port is a
-       comma-separated entry like 'input [7:0] a' or 'output reg [8:0] result'.
-    2. Module body: find declarations terminated with ';' that live after the
-       closing ')' of the port list.
-    """
     signals: Dict[str, Signal] = {}
 
-    # ── Pass 1: port-list declarations ───────────────────────────────────────
-    # Find the module header: module name (...);
     mod_paren_m = re.search(r'\bmodule\b[^(]*\(', code, re.DOTALL)
     port_list_end = 0
     if mod_paren_m:
-        # Find matching ')' for the module port list
-        start = mod_paren_m.end() - 1  # position of '('
+        start = mod_paren_m.end() - 1
         depth = 0
         i = start
         while i < len(code):
@@ -245,11 +220,8 @@ def _parse_signals(code: str) -> Dict[str, Signal]:
                     break
             i += 1
         port_list_content = code[start + 1:i]
-        port_list_end = i + 1  # position just after ')'
+        port_list_end = i + 1
 
-        # Each entry in the port list is comma-separated
-        # But entries can contain nested brackets [msb:lsb]
-        # Split by commas that are NOT inside brackets
         entries = _split_port_entries(port_list_content)
         for entry in entries:
             entry = entry.strip()
@@ -259,10 +231,7 @@ def _parse_signals(code: str) -> Dict[str, Signal]:
             if sig and sig.name not in signals:
                 signals[sig.name] = sig
 
-    # ── Pass 2: body declarations (after port list, terminated with ';') ─────
     body_code = code[port_list_end:]
-    # Match declarations: (input|output|inout|wire|reg) [reg] [[msb:lsb]] names ;
-    # Use a lookahead to not cross into another keyword
     decl_pat = re.compile(
         r'\b(input|output|inout|wire|reg)\b'
         r'(?:\s+reg\b)?'
@@ -288,7 +257,6 @@ def _parse_signals(code: str) -> Dict[str, Signal]:
 
 
 def _split_port_entries(port_list: str) -> List[str]:
-    """Split a port list string on commas, respecting bracket nesting."""
     entries = []
     depth = 0
     current = []
@@ -310,16 +278,10 @@ def _split_port_entries(port_list: str) -> List[str]:
 
 
 def _parse_single_port_decl(entry: str) -> Optional[Signal]:
-    """
-    Parse a single port declaration string like:
-      'input clk', 'input [7:0] a', 'output reg [8:0] result', 'reg [3:0] count'
-    Returns a Signal or None.
-    """
     entry = entry.strip()
     if not entry:
         return None
 
-    # Check for a direction keyword
     m = re.match(
         r'^(input|output|inout|wire|reg)\b'
         r'(?:\s+reg\b)?'
@@ -335,7 +297,6 @@ def _parse_single_port_decl(entry: str) -> Optional[Signal]:
         if name not in _KEYWORDS:
             return Signal(name=name, kind=kind, width=width)
 
-    # Plain identifier (ANSI port style where direction declared separately)
     id_m = re.match(r'^([A-Za-z_][A-Za-z0-9_$]*)', entry)
     if id_m:
         name = id_m.group(1)
@@ -345,32 +306,197 @@ def _parse_single_port_decl(entry: str) -> Optional[Signal]:
     return None
 
 
+# ── Syntax checks ─────────────────────────────────────────────────────────────
+
+def _check_bracket_balance(code: str, errors: List[str]):
+    """Check balanced parentheses and brackets (ignoring string literals)."""
+    paren, bracket = 0, 0
+    paren_line = bracket_line = 1
+    line = 1
+    for ch in code:
+        if ch == '\n':
+            line += 1
+        elif ch == '(':
+            if paren == 0:
+                paren_line = line
+            paren += 1
+        elif ch == ')':
+            paren -= 1
+            if paren < 0:
+                errors.append(f"Line {line}: unexpected ')' — no matching '('")
+                paren = 0
+        elif ch == '[':
+            if bracket == 0:
+                bracket_line = line
+            bracket += 1
+        elif ch == ']':
+            bracket -= 1
+            if bracket < 0:
+                errors.append(f"Line {line}: unexpected ']' — no matching '['")
+                bracket = 0
+    if paren > 0:
+        errors.append(f"Line {paren_line}: unclosed '(' — missing closing ')'")
+    if bracket > 0:
+        errors.append(f"Line {bracket_line}: unclosed '[' — missing closing ']'")
+
+
+def _check_begin_end_balance(code: str, errors: List[str]):
+    """Check that every begin has a matching end."""
+    depth = 0
+    begin_line = 1
+    line = 1
+
+    i = 0
+    while i < len(code):
+        if code[i] == '\n':
+            line += 1
+            i += 1
+            continue
+
+        # endmodule / endcase / endfunction / endtask  — skip, not a bare 'end'
+        for keyword in ('endmodule', 'endcase', 'endfunction', 'endtask',
+                        'endgenerate', 'endtable'):
+            if code[i:i + len(keyword)] == keyword:
+                tail = code[i + len(keyword):i + len(keyword) + 1]
+                if not tail or not (tail.isalnum() or tail == '_'):
+                    i += len(keyword)
+                    break
+        else:
+            if code[i:i + 5] == 'begin':
+                tail = code[i + 5:i + 6]
+                if not tail or not (tail.isalnum() or tail == '_'):
+                    if depth == 0:
+                        begin_line = line
+                    depth += 1
+                    i += 5
+                    continue
+            elif code[i:i + 3] == 'end':
+                tail = code[i + 3:i + 4]
+                if not tail or not (tail.isalnum() or tail == '_'):
+                    depth -= 1
+                    if depth < 0:
+                        errors.append(f"Line {line}: unexpected 'end' — no matching 'begin'")
+                        depth = 0
+                    i += 3
+                    continue
+            i += 1
+            continue
+        # fell through from inner break
+        continue
+
+    if depth > 0:
+        errors.append(f"Line {begin_line}: unclosed 'begin' — missing 'end' ({depth} level{'s' if depth>1 else ''} unclosed)")
+
+
+def _check_always_syntax(code: str, errors: List[str]):
+    """Check always blocks have @(...) sensitivity lists."""
+    for m in re.finditer(r'\balways\b', code):
+        line = _line_of(code, m.start())
+        rest = code[m.end():m.end() + 20].strip()
+        if not rest.startswith('@'):
+            errors.append(
+                f"Line {line}: 'always' without sensitivity list — expected 'always @(...)' or 'always @*'"
+            )
+
+
+def _check_assign_syntax(code: str, errors: List[str]):
+    """Check assign statements have a LHS signal and '='."""
+    for m in re.finditer(r'\bassign\b', code):
+        line = _line_of(code, m.start())
+        # Find the next semicolon
+        end = code.find(';', m.end())
+        if end == -1:
+            errors.append(f"Line {line}: 'assign' statement missing terminating ';'")
+            continue
+        stmt = code[m.end():end]
+        if '=' not in stmt:
+            errors.append(f"Line {line}: 'assign' statement missing '=' — expected 'assign signal = expr;'")
+
+
+def _check_output_never_driven(signals: Dict[str, Signal], processes: List[Process], warnings: List[str]):
+    """Warn if output/reg signals are never driven by any process."""
+    driven_by_process: set = set()
+    for p in processes:
+        driven_by_process.update(p.drives)
+
+    for name, sig in signals.items():
+        if sig.kind == 'output' and name not in driven_by_process:
+            warnings.append(
+                f"Signal '{name}' declared as output but never assigned in any always block or assign statement"
+            )
+
+
+def _check_undeclared_reads(signals: Dict[str, Signal], processes: List[Process], warnings: List[str]):
+    """Warn if a process reads a signal that is not declared."""
+    declared = set(signals.keys())
+    for p in processes:
+        for r in p.reads:
+            if r not in declared:
+                warnings.append(f"Process '{p.name}' references undeclared identifier '{r}'")
+
+
+def _check_multiple_drivers(processes: List[Process], warnings: List[str]):
+    """Warn if the same signal is driven by more than one always block."""
+    driven_by: Dict[str, List[str]] = {}
+    for p in processes:
+        for d in p.drives:
+            driven_by.setdefault(d, []).append(p.name)
+    for sig, procs in driven_by.items():
+        if len(procs) > 1:
+            warnings.append(
+                f"Signal '{sig}' is driven by multiple processes ({', '.join(procs)}) — potential multiple-driver conflict"
+            )
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
 def parse(verilog: str) -> ParsedModule:
     """
     Parse a Verilog module from source text.
-    Returns a ParsedModule with signals, processes, and any parse errors.
+    Returns a ParsedModule with signals, processes, errors, and warnings.
     """
     errors: List[str] = []
+    warnings: List[str] = []
+
     code = _strip_comments(verilog)
 
-    # Extract module name
+    # ── 1. Module declaration ──────────────────────────────────────
     mod_m = re.search(r'\bmodule\s+(\w+)', code)
     if not mod_m:
-        return ParsedModule(
-            name='unknown',
-            signals={},
-            processes=[],
-            errors=['No module declaration found']
-        )
+        errors.append("No 'module' declaration found — Verilog must start with 'module <name>(...);'")
+        return ParsedModule(name='unknown', signals={}, processes=[], errors=errors, warnings=warnings)
+
     module_name = mod_m.group(1)
 
-    # Parse signals
+    if 'endmodule' not in code:
+        errors.append("Missing 'endmodule' — module is not closed")
+        # continue parsing for more errors
+
+    # ── 2. Structural checks (syntax before parsing) ───────────────
+    _check_bracket_balance(code, errors)
+    _check_begin_end_balance(code, errors)
+    _check_always_syntax(code, errors)
+    _check_assign_syntax(code, errors)
+
+    # If hard structural errors found, stop before parsing
+    if errors:
+        # still try to parse signals for a partial result
+        signals = _parse_signals(code)
+        return ParsedModule(name=module_name, signals=signals, processes=[], errors=errors, warnings=warnings)
+
+    # ── 3. Parse signals ───────────────────────────────────────────
     signals = _parse_signals(code)
 
+    if not signals:
+        errors.append(
+            "No signals found — check port declarations "
+            "(input/output/wire/reg) are properly listed"
+        )
+
+    # ── 4. Parse processes ─────────────────────────────────────────
     processes: List[Process] = []
     proc_counter = {'assign': 0, 'always': 0}
 
-    # --- Parse assign statements ---
     assign_pat = re.compile(
         r'\bassign\s+([A-Za-z_][A-Za-z0-9_$]*)\s*(?:\[[^\]]*\])?\s*=\s*([^;]+);',
         re.DOTALL
@@ -382,7 +508,6 @@ def parse(verilog: str) -> ParsedModule:
         proc_name = f'assign_{proc_counter["assign"]}_{lhs_name}'
 
         reads = _extract_identifiers(rhs_expr)
-        # Filter reads to only known signals plus new ones we may find
         drives = [lhs_name] if lhs_name not in _KEYWORDS else []
 
         processes.append(Process(
@@ -392,22 +517,22 @@ def parse(verilog: str) -> ParsedModule:
             drives=drives,
             reads=reads,
         ))
-        # Register lhs as wire if not already known
         if lhs_name not in signals and lhs_name not in _KEYWORDS:
             signals[lhs_name] = Signal(name=lhs_name, kind='wire', width=1)
 
-    # --- Parse always blocks ---
     always_blocks = _find_always_blocks(code)
-    for _, (sens_str, body) in enumerate(always_blocks):
+    for _, (sens_str, body, line_no) in enumerate(always_blocks):
         proc_counter['always'] += 1
         kind, sensitivity = _parse_sensitivity_list(sens_str)
 
-        # Extract all identifiers from body
-        all_idents = _extract_identifiers(body)
+        if not sensitivity and sens_str.strip() != '*':
+            warnings.append(
+                f"Line {line_no}: always block has empty sensitivity list — "
+                "did you mean 'always @(*)'?"
+            )
 
-        # Extract driven signals (LHS of assignments)
+        all_idents = _extract_identifiers(body)
         drives = _extract_lhs_names(body)
-        # Deduplicate while preserving order
         seen_drives = set()
         unique_drives = []
         for d in drives:
@@ -416,9 +541,7 @@ def parse(verilog: str) -> ParsedModule:
                 unique_drives.append(d)
         drives = unique_drives
 
-        # Reads = all identifiers that are not exclusively on LHS and not keywords
         reads = [i for i in all_idents if i not in seen_drives or i in sensitivity]
-        # If sensitivity is '*', reads become the sensitivity list
         if sens_str.strip() == '*':
             sensitivity = list(reads)
 
@@ -434,9 +557,21 @@ def parse(verilog: str) -> ParsedModule:
             reads=reads,
         ))
 
+    if not processes:
+        errors.append(
+            "No processes found — no 'always @(...)' blocks or 'assign' statements detected"
+        )
+
+    # ── 5. Semantic checks (warnings) ─────────────────────────────
+    if not errors:
+        _check_output_never_driven(signals, processes, warnings)
+        _check_multiple_drivers(processes, warnings)
+        _check_undeclared_reads(signals, processes, warnings)
+
     return ParsedModule(
         name=module_name,
         signals=signals,
         processes=processes,
         errors=errors,
+        warnings=warnings,
     )
