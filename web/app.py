@@ -25,7 +25,28 @@ app.add_middleware(
 )
 
 # Path to the compiled C++ binary
-_BIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'celeris')
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_BIN  = os.path.join(_ROOT, 'build', 'celeris')
+
+def _try_compile():
+    """Try to compile the C++ binary at startup if it doesn't exist."""
+    if os.path.isfile(_BIN):
+        return
+    try:
+        os.makedirs(os.path.join(_ROOT, 'build'), exist_ok=True)
+        r = subprocess.run(
+            ['g++', '-std=c++20', '-O3', '-pthread', '-Iinclude',
+             '-o', _BIN, 'src/main.cpp'],
+            cwd=_ROOT, capture_output=True, text=True, timeout=120
+        )
+        if r.returncode == 0:
+            print(f'[startup] compiled celeris binary at {_BIN}', flush=True)
+        else:
+            print(f'[startup] compile failed: {r.stderr[:300]}', flush=True)
+    except Exception as e:
+        print(f'[startup] compile error: {e}', flush=True)
+
+_try_compile()
 
 
 # ── Benchmark endpoint (real C++ engine) ─────────────────────────────────────

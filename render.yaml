@@ -1,5 +1,9 @@
 services:
   - type: web
     name: celeris
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: python
+    buildCommand: apt-get update -qq && apt-get install -y -qq g++ && mkdir -p build && g++ -std=c++20 -O3 -pthread -Iinclude -o build/celeris src/main.cpp && pip install -r web/requirements.txt
+    startCommand: uvicorn web.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHONPATH
+        value: .
