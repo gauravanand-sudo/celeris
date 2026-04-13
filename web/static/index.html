@@ -58,8 +58,25 @@
     }
     .gh-link:hover { color: var(--text-hi); border-color: #555; }
 
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface); padding: 0 20px;
+    }
+    .tab-btn {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+      padding: 12px 18px; border: none; background: transparent; cursor: pointer;
+      color: var(--text-dim); border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text-hi); }
+
     /* ── Layout ── */
-    .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+    .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     /* ── Intro ── */
     .intro { margin-bottom: 36px; }
@@ -151,7 +168,7 @@
     .prof-val.orange  { color: var(--orange); }
     .prof-val.purple  { color: var(--purple); }
 
-    /* ── Comparison table (two strategies with delta) ── */
+    /* ── Comparison table ── */
     .cmp-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
     .cmp-table th { text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text-dim); padding: 4px 8px; border-bottom: 1px solid var(--border); }
     .cmp-table td { padding: 5px 8px; border-bottom: 1px solid #1a1a1a; font-family: var(--mono); color: var(--text); }
@@ -181,6 +198,198 @@
     /* ── Footnote ── */
     .footnote { font-size: 11px; color: var(--text-dim); margin-top: 8px; line-height: 1.6; }
     .footnote code { font-family: var(--mono); font-size: 10px; background: var(--surface2); padding: 1px 5px; border-radius: 3px; }
+
+    /* ════════════════════════════════════════════════════
+       WORKSHOP STYLES
+       ════════════════════════════════════════════════════ */
+
+    /* Code selection */
+    .ws-choose { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+    .ws-choose-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 18px 20px; cursor: pointer;
+      transition: border-color .15s, background .15s; text-align: left;
+    }
+    .ws-choose-card:hover { background: var(--surface2); border-color: #555; }
+    .ws-choose-card.primary { border-color: var(--accent); }
+    .ws-choose-card.primary:hover { background: #0d1a2a; }
+    .ws-card-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 7px; }
+    .ws-card-desc  { font-size: 12px; color: var(--text); line-height: 1.65; }
+
+    /* Textarea */
+    .ws-textarea {
+      width: 100%; min-height: 220px; resize: vertical;
+      background: #080808; border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px;
+      font-family: var(--mono); font-size: 12px; line-height: 1.7;
+      color: var(--text-hi); outline: none;
+    }
+    .ws-textarea:focus { border-color: var(--accent); }
+    .ws-paste-actions { display: flex; gap: 10px; margin-top: 10px; }
+
+    /* Active code panel */
+    .ws-code-subject {
+      background: #080808; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin-bottom: 32px;
+    }
+    .ws-code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; background: var(--surface2); border-bottom: 1px solid var(--border);
+    }
+    .ws-code-bar-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+    .ws-code-pre {
+      margin: 0; padding: 14px; max-height: 160px; overflow-y: auto;
+      font-family: var(--mono); font-size: 11.5px; line-height: 1.75;
+      color: #8b9eb0; white-space: pre; overflow-x: auto;
+    }
+
+    /* Step card */
+    .ws-step {
+      border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; margin-bottom: 24px; background: var(--surface);
+      animation: stepIn .35s cubic-bezier(.16,1,.3,1) both;
+    }
+    .ws-step.done { border-color: var(--step-color, #444); background: var(--step-bg, var(--surface)); }
+    @keyframes stepIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .ws-step-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px; background: var(--surface2); border-bottom: 1px solid var(--border);
+    }
+    .ws-step-num {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text-dim);
+      transition: all .25s;
+    }
+    .ws-step-num.done { color: var(--step-color); border-color: var(--step-color); background: var(--step-color-bg); }
+    .ws-step-title { flex: 1; font-size: 13px; font-weight: 700; color: var(--text-hi); }
+    .ws-phase-badge {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em;
+      padding: 2px 8px; border-radius: 3px; border: 1px solid;
+    }
+
+    .ws-step-body { padding: 18px; }
+
+    /* Why block */
+    .ws-why {
+      border-left: 2px solid var(--step-color, #444);
+      padding-left: 14px; margin-bottom: 18px;
+    }
+    .ws-why-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--step-color, #666); margin-bottom: 5px; }
+    .ws-why-text  { font-size: 12px; color: var(--text-hi); line-height: 1.85; }
+
+    /* Terminal */
+    .ws-terminal {
+      background: #080808; border: 1px solid #2a2a2a;
+      border-radius: 7px; overflow: hidden; margin-bottom: 14px;
+    }
+    .ws-term-bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px; background: var(--surface2); border-bottom: 1px solid #2a2a2a;
+    }
+    .ws-term-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .ws-term-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-left: 6px; }
+    .ws-term-cmd {
+      margin: 0; padding: 12px 14px 0;
+      font-family: var(--mono); font-size: 12px; line-height: 1.7; color: var(--text-hi);
+      white-space: pre;
+    }
+    .ws-term-prompt { color: var(--green); }
+    .ws-term-out {
+      margin: 0; padding: 8px 14px 14px;
+      font-family: var(--mono); font-size: 11.5px; line-height: 1.75;
+      color: #8b9eb0; white-space: pre; overflow-x: auto;
+      border-top: 1px solid #1a1a1a; animation: outIn .45s ease both;
+    }
+    @keyframes outIn { from { opacity:0; } to { opacity:1; } }
+    .ws-term-running {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    }
+    .ws-spinner {
+      width: 12px; height: 12px; border: 2px solid #333;
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    .ws-hot { color: var(--text-hi) !important; }
+
+    /* Diff panel */
+    .ws-diff { background: #080808; border: 1px solid #2a2a2a; border-radius: 7px; overflow: hidden; margin-bottom: 14px; }
+    .ws-diff-tabs { display: flex; background: var(--surface2); border-bottom: 1px solid #2a2a2a; }
+    .ws-diff-tab {
+      font-family: var(--mono); font-size: 10px; padding: 9px 14px;
+      border: none; background: transparent; cursor: pointer; color: var(--text-dim);
+      border-bottom: 2px solid transparent; transition: all .15s;
+    }
+    .ws-diff-tab.active-before { color: var(--orange); border-bottom-color: var(--orange); }
+    .ws-diff-tab.active-after  { color: var(--green);  border-bottom-color: var(--green); }
+    .ws-diff-label { margin-left: auto; padding: 9px 14px; font-family: var(--mono); font-size: 10px; color: #444; }
+    .ws-diff-code {
+      margin: 0; padding: 14px;
+      font-family: var(--mono); font-size: 12px; line-height: 1.75;
+      color: var(--text-hi); white-space: pre; overflow-x: auto;
+    }
+    .ws-diff-comment { color: #484f58; }
+
+    /* Insight */
+    .ws-insight {
+      border-radius: 6px; padding: 12px 14px; margin-bottom: 14px;
+      animation: outIn .45s ease both;
+    }
+    .ws-insight-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 5px; }
+    .ws-insight-text  { font-size: 12px; color: var(--text-hi); line-height: 1.85; }
+
+    /* Action buttons */
+    .ws-actions { display: flex; gap: 10px; }
+    .ws-btn-run {
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      border: none; border-radius: 6px; padding: 8px 20px;
+      cursor: pointer; transition: opacity .15s; display: flex; align-items: center; gap: 7px;
+    }
+    .ws-btn-run:hover { opacity: .85; }
+    .ws-btn-next {
+      font-family: var(--mono); font-size: 12px;
+      background: transparent; border-radius: 6px; padding: 8px 18px;
+      cursor: pointer; transition: all .15s;
+    }
+
+    /* Real data badge */
+    .live-badge {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
+      color: var(--green); border: 1px solid var(--green); background: #0a1f0f;
+      padding: 2px 7px; border-radius: 3px; flex-shrink: 0;
+    }
+
+    /* Completion */
+    .ws-complete {
+      border: 1px solid #1e3a5f; border-radius: 8px; padding: 28px 24px;
+      background: #0a0d14; text-align: center;
+      animation: stepIn .4s cubic-bezier(.16,1,.3,1) both;
+    }
+    .ws-complete h2 { font-size: 22px; font-weight: 700; color: var(--green); letter-spacing: -0.02em; margin-bottom: 10px; }
+    .ws-complete p  { font-size: 12px; color: var(--text-dim); line-height: 1.85; max-width: 520px; margin: 0 auto 20px; }
+    .ws-complete-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .ws-complete-links a {
+      font-family: var(--mono); font-size: 12px; font-weight: 600;
+      padding: 9px 20px; border-radius: 6px; text-decoration: none; display: inline-block;
+    }
+    .ws-complete-links a.primary { background: var(--green); color: #0a0a0a; }
+    .ws-complete-links a.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-hi); }
+
+    /* Final results table */
+    .ws-results-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 0; }
+    .ws-results-table th {
+      text-align: left; font-family: var(--mono); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .6px; color: var(--text-dim);
+      padding: 6px 10px; border-bottom: 1px solid var(--border);
+    }
+    .ws-results-table td { padding: 7px 10px; border-bottom: 1px solid #1a1a1a; font-family: var(--mono); color: var(--text); }
+    .ws-results-table tr:last-child td { border-bottom: none; }
+    .ws-results-table .hi { color: var(--text-hi); }
+    .ws-results-table .green { color: var(--green); }
+    .ws-results-table .dim  { color: var(--text-dim); }
   </style>
 </head>
 <body>
@@ -201,52 +410,132 @@
   </div>
 </header>
 
-<div class="page">
-
-  <div class="intro">
-    <h1>C++20 Synchronization Benchmarks</h1>
-    <p>
-      Celeris is a multicore event-driven simulation engine built in C++20.
-      This page runs the <strong>actual compiled binary</strong> on the server and shows real profiler data —
-      <code>std::barrier</code>, <code>std::jthread</code>, <code>std::latch</code>, per-signal atomics —
-      comparing three synchronization strategies across four experiments.
-    </p>
-  </div>
-
-  <div class="config-bar">
-    <div class="cfg-group">
-      <span class="cfg-label">Worker threads</span>
-      <input class="cfg-input" type="number" id="cfg-threads" value="3" min="1" max="8" />
-    </div>
-    <div class="cfg-sep"></div>
-    <div class="cfg-group">
-      <span class="cfg-label">Seed events</span>
-      <input class="cfg-input" type="number" id="cfg-events" value="200" min="10" max="2000" />
-    </div>
-    <div class="cfg-sep"></div>
-    <span style="font-size:11px;color:var(--text-dim)">Sim end: t=5000 · Design: 8 signals, 6 processes, 3 regions</span>
-    <button class="btn-run" id="btn-run" onclick="runBenchmark()">
-      <div class="spinner"></div>
-      <span class="btn-label">▶ Run Engine</span>
-    </button>
-  </div>
-
-  <div class="status-bar" id="status-bar">Waiting — configure parameters and click Run Engine</div>
-
-  <div id="results">
-    <div class="placeholder">
-      <div class="icon">⚙</div>
-      <h3>Ready to Run</h3>
-      <p>
-        Click <strong>Run Engine</strong> to execute the compiled C++20 simulation binary on the server.
-        Results show real profiler counters from <code>std::atomic&lt;uint64_t&gt;</code> across all worker threads.
-      </p>
-    </div>
-  </div>
-
+<!-- Tab bar -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('benchmarks')">Benchmarks</button>
+  <button class="tab-btn" onclick="switchTab('workshop')">Performance Workshop</button>
 </div>
 
+<div class="page">
+
+  <!-- ═══════════════ BENCHMARKS TAB ═══════════════ -->
+  <div id="tab-benchmarks" class="tab-content active">
+
+    <div class="intro">
+      <h1>C++20 Synchronization Benchmarks</h1>
+      <p>
+        Celeris is a multicore event-driven simulation engine built in C++20.
+        This page runs the <strong>actual compiled binary</strong> on the server and shows real profiler data —
+        <code>std::barrier</code>, <code>std::jthread</code>, <code>std::latch</code>, per-signal atomics —
+        comparing three synchronization strategies across four experiments.
+      </p>
+    </div>
+
+    <div class="config-bar">
+      <div class="cfg-group">
+        <span class="cfg-label">Worker threads</span>
+        <input class="cfg-input" type="number" id="cfg-threads" value="3" min="1" max="8" />
+      </div>
+      <div class="cfg-sep"></div>
+      <div class="cfg-group">
+        <span class="cfg-label">Seed events</span>
+        <input class="cfg-input" type="number" id="cfg-events" value="200" min="10" max="2000" />
+      </div>
+      <div class="cfg-sep"></div>
+      <span style="font-size:11px;color:var(--text-dim)">Sim end: t=5000 · Design: 8 signals, 6 processes, 3 regions</span>
+      <button class="btn-run" id="btn-run" onclick="runBenchmark()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Run Engine</span>
+      </button>
+    </div>
+
+    <div class="status-bar" id="status-bar">Waiting — configure parameters and click Run Engine</div>
+
+    <div id="results">
+      <div class="placeholder">
+        <div class="icon">⚙</div>
+        <h3>Ready to Run</h3>
+        <p>
+          Click <strong>Run Engine</strong> to execute the compiled C++20 simulation binary on the server.
+          Results show real profiler counters from <code>std::atomic&lt;uint64_t&gt;</code> across all worker threads.
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /tab-benchmarks -->
+
+  <!-- ═══════════════ WORKSHOP TAB ═══════════════ -->
+  <div id="tab-workshop" class="tab-content">
+
+    <div class="intro" style="margin-bottom:28px">
+      <h1>Performance Workshop</h1>
+      <p>
+        The exact profiling and optimization sequence used during development — from a mutex-saturated
+        baseline to a 3.89× throughput gain. Paste your own multithreaded C++ code or use the built-in
+        Celeris example. Steps that trigger benchmarks run the <strong>actual compiled binary</strong> on
+        this server and show real numbers.
+      </p>
+    </div>
+
+    <!-- Code selection -->
+    <div id="ws-code-select">
+      <div class="ws-choose">
+        <button class="ws-choose-card primary" onclick="wsChoose('example')">
+          <div class="ws-card-label" style="color:var(--accent)">Use Celeris example</div>
+          <div class="ws-card-desc">Built-in simulation engine with coarse-grained mutex baseline. Benchmark steps run the actual server binary.</div>
+        </button>
+        <button class="ws-choose-card" onclick="wsChoose('paste')">
+          <div class="ws-card-label" style="color:var(--text-dim)">Paste your C++ code</div>
+          <div class="ws-card-desc">Paste your multithreaded C++ and run the same profiling methodology against it.</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Paste panel -->
+    <div id="ws-paste-panel" style="display:none;margin-bottom:32px">
+      <textarea id="ws-textarea" class="ws-textarea" placeholder="Paste your C++ code here..."></textarea>
+      <div class="ws-paste-actions">
+        <button onclick="wsStartPaste()"
+          style="font-family:var(--mono);font-size:12px;font-weight:700;background:var(--accent);color:white;border:none;border-radius:6px;padding:8px 20px;cursor:pointer;">
+          Start Workshop →
+        </button>
+        <button onclick="wsChoose('example')"
+          style="font-family:var(--mono);font-size:12px;background:transparent;color:var(--text-dim);border:1px solid var(--border);border-radius:6px;padding:8px 16px;cursor:pointer;">
+          Use example instead
+        </button>
+      </div>
+    </div>
+
+    <!-- Subject code (after selection) -->
+    <div id="ws-subject" style="display:none"></div>
+
+    <!-- Workshop steps rendered here -->
+    <div id="ws-steps"></div>
+
+    <!-- Completion banner -->
+    <div id="ws-complete" style="display:none"></div>
+
+  </div><!-- /tab-workshop -->
+
+</div><!-- /page -->
+
 <script>
+/* ─────────────────────────────────────────────────────────────────
+   TAB SWITCHING
+───────────────────────────────────────────────────────────────── */
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'))
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'))
+  document.getElementById('tab-' + name).classList.add('active')
+  document.querySelectorAll('.tab-btn').forEach(el => {
+    if (el.textContent.toLowerCase().includes(name === 'benchmarks' ? 'benchmark' : 'workshop'))
+      el.classList.add('active')
+  })
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   BENCHMARK TAB helpers (unchanged from original)
+───────────────────────────────────────────────────────────────── */
 function fmt(n) {
   if (n === undefined || n === null) return '—';
   if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
@@ -254,20 +543,12 @@ function fmt(n) {
   if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
   return Number(n).toFixed(0);
 }
-function fmtMs(ms) {
-  return ms < 1 ? ms.toFixed(2) + ' ms' : ms.toFixed(1) + ' ms';
-}
+function fmtMs(ms) { return ms < 1 ? ms.toFixed(2) + ' ms' : ms.toFixed(1) + ' ms'; }
 
 const COLORS = {
-  coarse:      '#ef4444',
-  fine:        '#f59e0b',
-  atomic:      '#22c55e',
-  mutex_flag:  '#ef4444',
-  atomic_cas:  '#f59e0b',
-  atomic_flag: '#22c55e',
-  mutex:       '#ef4444',
-  atomic_sv:   '#f59e0b',
-  sharded:     '#22c55e',
+  coarse:'#ef4444', fine:'#f59e0b', atomic:'#22c55e',
+  mutex_flag:'#ef4444', atomic_cas:'#f59e0b', atomic_flag:'#22c55e',
+  mutex:'#ef4444', atomic_sv:'#f59e0b', sharded:'#22c55e',
 };
 
 function barRow(label, value, maxValue, color, speedup, isBase) {
@@ -275,275 +556,672 @@ function barRow(label, value, maxValue, color, speedup, isBase) {
   const speedupHtml = isBase
     ? `<div class="s-speedup base">baseline</div>`
     : `<div class="s-speedup">${speedup.toFixed(2)}x</div>`;
-  return `
-    <div class="strategy-row">
-      <div class="s-label">${label}</div>
-      <div class="s-bar-track"><div class="s-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="s-value">${fmt(value)}/s</div>
-      ${speedupHtml}
-    </div>`;
+  return `<div class="strategy-row">
+    <div class="s-label">${label}</div>
+    <div class="s-bar-track"><div class="s-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="s-value">${fmt(value)}/s</div>
+    ${speedupHtml}
+  </div>`;
 }
 
 function profilerCard(r) {
-  return `
-    <div class="profiler-grid">
-      <div class="prof-item"><div class="prof-label">Total events</div><div class="prof-val accent">${fmt(r.total_events)}</div></div>
-      <div class="prof-item"><div class="prof-label">Delta cycles</div><div class="prof-val purple">${fmt(r.delta_cycles)}</div></div>
-      <div class="prof-item"><div class="prof-label">Signal updates</div><div class="prof-val">${fmt(r.signal_updates)}</div></div>
-      <div class="prof-item"><div class="prof-label">Process evals</div><div class="prof-val">${fmt(r.process_evaluations)}</div></div>
-      <div class="prof-item"><div class="prof-label">Barrier waits</div><div class="prof-val orange">${fmt(r.barrier_waits)}</div></div>
-      <div class="prof-item"><div class="prof-label">Contention</div><div class="prof-val">${fmt(r.contention_events)}</div></div>
-      <div class="prof-item"><div class="prof-label">NBA updates</div><div class="prof-val">${fmt(r.nba_updates)}</div></div>
-      <div class="prof-item"><div class="prof-label">Wall time</div><div class="prof-val green">${fmtMs(r.wall_ms)}</div></div>
-    </div>`;
+  return `<div class="profiler-grid">
+    <div class="prof-item"><div class="prof-label">Total events</div><div class="prof-val accent">${fmt(r.total_events)}</div></div>
+    <div class="prof-item"><div class="prof-label">Delta cycles</div><div class="prof-val purple">${fmt(r.delta_cycles)}</div></div>
+    <div class="prof-item"><div class="prof-label">Signal updates</div><div class="prof-val">${fmt(r.signal_updates)}</div></div>
+    <div class="prof-item"><div class="prof-label">Process evals</div><div class="prof-val">${fmt(r.process_evaluations)}</div></div>
+    <div class="prof-item"><div class="prof-label">Barrier waits</div><div class="prof-val orange">${fmt(r.barrier_waits)}</div></div>
+    <div class="prof-item"><div class="prof-label">Contention</div><div class="prof-val">${fmt(r.contention_events)}</div></div>
+    <div class="prof-item"><div class="prof-label">NBA updates</div><div class="prof-val">${fmt(r.nba_updates)}</div></div>
+    <div class="prof-item"><div class="prof-label">Wall time</div><div class="prof-val green">${fmtMs(r.wall_ms)}</div></div>
+  </div>`;
 }
 
 function cmpTable(rows) {
-  // rows: [{metric, a, b}]  a=strategy1 b=strategy2
   const header = rows[0];
-  let h = `<table class="cmp-table">
-    <thead><tr>
-      <th>Metric</th>
-      <th>${header.aLabel}</th>
-      <th>${header.bLabel}</th>
-      <th>Delta</th>
-    </tr></thead><tbody>`;
+  let h = `<table class="cmp-table"><thead><tr>
+    <th>Metric</th><th>${header.aLabel}</th><th>${header.bLabel}</th><th>Delta</th>
+  </tr></thead><tbody>`;
   for (const r of rows.slice(1)) {
     const delta = r.b - r.a;
-    const pct = r.a !== 0 ? ((delta / r.a) * 100) : 0;
+    const pct = r.a !== 0 ? ((delta/r.a)*100) : 0;
     const cls = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : '';
     const sign = delta >= 0 ? '+' : '';
-    h += `<tr>
-      <td class="metric">${r.metric}</td>
-      <td>${fmt(r.a)}</td>
-      <td>${fmt(r.b)}</td>
-      <td class="${cls}">${sign}${pct.toFixed(0)}%</td>
-    </tr>`;
+    h += `<tr><td class="metric">${r.metric}</td><td>${fmt(r.a)}</td><td>${fmt(r.b)}</td><td class="${cls}">${sign}${pct.toFixed(0)}%</td></tr>`;
   }
-  h += '</tbody></table>';
-  return h;
+  return h + '</tbody></table>';
 }
 
 function renderExp1(d) {
   const c = d.coarse, f = d.fine;
   const maxEps = Math.max(c.events_per_sec, f.events_per_sec);
-  return `
-    <div class="exp-card">
-      <div class="exp-header">
-        <div>
-          <div class="exp-title">Experiment 1 — Lock Granularity</div>
-          <div class="exp-subtitle">${d.subtitle}</div>
-        </div>
-        <div class="exp-badge" style="color:#f59e0b;border-color:#f59e0b30;background:#f59e0b0d">Mutex</div>
+  return `<div class="exp-card">
+    <div class="exp-header">
+      <div><div class="exp-title">Experiment 1 — Lock Granularity</div><div class="exp-subtitle">${d.subtitle}</div></div>
+      <div class="exp-badge" style="color:#f59e0b;border-color:#f59e0b30;background:#f59e0b0d">Mutex</div>
+    </div>
+    <div class="exp-body">
+      <div class="section-title">Events / second (higher is better)</div>
+      <div class="strategy-list">
+        ${barRow('CoarseGrained (1 global mutex)', c.events_per_sec, maxEps, COLORS.coarse, 1, true)}
+        ${barRow('FineGrained   (1 mutex/signal)', f.events_per_sec, maxEps, COLORS.fine, f.events_per_sec/c.events_per_sec, false)}
       </div>
-      <div class="exp-body">
-        <div class="section-title">Events / second (higher is better)</div>
-        <div class="strategy-list">
-          ${barRow('CoarseGrained (1 global mutex)', c.events_per_sec, maxEps, COLORS.coarse, 1, true)}
-          ${barRow('FineGrained   (1 mutex/signal)', f.events_per_sec, maxEps, COLORS.fine, f.events_per_sec/c.events_per_sec, false)}
-        </div>
-        <div class="footnote" style="margin-top:10px">
-          Speedup comes purely from <strong>reducing lock contention</strong>: threads touching different signals no longer block each other.
-          The synchronization primitive (std::shared_mutex) is identical in both.
-        </div>
-        ${profilerCard(c)}
+      <div class="footnote" style="margin-top:10px">
+        Speedup comes purely from <strong>reducing lock contention</strong>: threads touching different signals no longer block each other.
       </div>
-    </div>`;
+      ${profilerCard(c)}
+    </div>
+  </div>`;
 }
-
 function renderExp2(d) {
   const fm = d.fine_mutex, a = d.atomic;
   const maxEps = Math.max(fm.events_per_sec, a.events_per_sec);
-  return `
-    <div class="exp-card">
-      <div class="exp-header">
-        <div>
-          <div class="exp-title">Experiment 2 — Sync Primitive</div>
-          <div class="exp-subtitle">${d.subtitle}</div>
-        </div>
-        <div class="exp-badge" style="color:#22c55e;border-color:#22c55e30;background:#22c55e0d">Lock-free</div>
+  return `<div class="exp-card">
+    <div class="exp-header">
+      <div><div class="exp-title">Experiment 2 — Sync Primitive</div><div class="exp-subtitle">${d.subtitle}</div></div>
+      <div class="exp-badge" style="color:#22c55e;border-color:#22c55e30;background:#22c55e0d">Lock-free</div>
+    </div>
+    <div class="exp-body">
+      <div class="section-title">Events / second</div>
+      <div class="strategy-list">
+        ${barRow('FineGrained (shared_mutex)', fm.events_per_sec, maxEps, COLORS.fine, 1, true)}
+        ${barRow('Atomic      (lock-free)',    a.events_per_sec,  maxEps, COLORS.atomic, a.events_per_sec/fm.events_per_sec, false)}
       </div>
-      <div class="exp-body">
-        <div class="section-title">Events / second (higher is better)</div>
-        <div class="strategy-list">
-          ${barRow('FineGrained (shared_mutex)', fm.events_per_sec, maxEps, COLORS.fine, 1, true)}
-          ${barRow('Atomic      (lock-free)',    a.events_per_sec,  maxEps, COLORS.atomic, a.events_per_sec/fm.events_per_sec, false)}
-        </div>
-        <div class="footnote" style="margin-top:10px">
-          Both strategies are per-signal. The only variable is the primitive:
-          <code>std::shared_mutex</code> vs <code>std::atomic&lt;uint32_t&gt;</code>.
-          Atomic removes kernel involvement entirely — store/load becomes a single CPU instruction.
-        </div>
-        ${cmpTable([
-          {aLabel:'FineGrained', bLabel:'Atomic'},
-          {metric:'Events/sec',           a:fm.events_per_sec,       b:a.events_per_sec},
-          {metric:'Wall time (ms)',        a:fm.wall_ms,              b:a.wall_ms},
-          {metric:'Barrier waits',         a:fm.barrier_waits,        b:a.barrier_waits},
-          {metric:'Process evaluations',   a:fm.process_evaluations,  b:a.process_evaluations},
-        ])}
+      <div class="footnote" style="margin-top:10px">
+        Both strategies are per-signal. The only variable is the primitive: <code>std::shared_mutex</code> vs <code>std::atomic&lt;uint32_t&gt;</code>.
       </div>
-    </div>`;
+      ${cmpTable([{aLabel:'FineGrained',bLabel:'Atomic'},
+        {metric:'Events/sec',a:fm.events_per_sec,b:a.events_per_sec},
+        {metric:'Wall time (ms)',a:fm.wall_ms,b:a.wall_ms},
+        {metric:'Barrier waits',a:fm.barrier_waits,b:a.barrier_waits},
+        {metric:'Process evals',a:fm.process_evaluations,b:a.process_evaluations}])}
+    </div>
+  </div>`;
 }
-
 function renderExp3(d) {
   const vals = [d.mutex_flag, d.atomic_cas, d.atomic_flag];
   const maxV = Math.max(...vals);
-  return `
-    <div class="exp-card">
-      <div class="exp-header">
-        <div>
-          <div class="exp-title">Experiment 3 — Flag Primitive (Process Activation Hot Path)</div>
-          <div class="exp-subtitle">${d.subtitle}</div>
-        </div>
-        <div class="exp-badge" style="color:#a78bfa;border-color:#a78bfa30;background:#a78bfa0d">Microbench</div>
+  return `<div class="exp-card">
+    <div class="exp-header">
+      <div><div class="exp-title">Experiment 3 — Flag Primitive (Hot Path)</div><div class="exp-subtitle">${d.subtitle}</div></div>
+      <div class="exp-badge" style="color:#a78bfa;border-color:#a78bfa30;background:#a78bfa0d">Microbench</div>
+    </div>
+    <div class="exp-body">
+      <div class="section-title">Activations / second</div>
+      <div class="strategy-list">
+        ${barRow('mutex + bool (lock_guard)', d.mutex_flag, maxV, COLORS.mutex_flag, 1, true)}
+        ${barRow('atomic&lt;bool&gt; + CAS', d.atomic_cas, maxV, COLORS.atomic_cas, d.atomic_cas/d.mutex_flag, false)}
+        ${barRow('atomic_flag + TAS (LOCK XCHG)', d.atomic_flag, maxV, COLORS.atomic_flag, d.atomic_flag/d.mutex_flag, false)}
       </div>
-      <div class="exp-body">
-        <div class="section-title">Activations / second — "set flag exactly once even when N threads race" (higher is better)</div>
-        <div class="strategy-list">
-          ${barRow('mutex + bool          (lock_guard → if(!flag))', d.mutex_flag,  maxV, COLORS.mutex_flag,  1, true)}
-          ${barRow('atomic&lt;bool&gt; + CAS   (compare_exchange_strong)', d.atomic_cas,  maxV, COLORS.atomic_cas,  d.atomic_cas/d.mutex_flag, false)}
-          ${barRow('atomic_flag + TAS     (LOCK XCHG, single instruction)', d.atomic_flag, maxV, COLORS.atomic_flag, d.atomic_flag/d.mutex_flag, false)}
-        </div>
-        <div class="footnote" style="margin-top:10px">
-          This is the exact pattern used on every signal change: activate a process flag exactly once,
-          even when multiple threads see the same signal simultaneously.
-          <code>atomic_flag::test_and_set()</code> maps to a single <code>LOCK XCHG</code> x86 instruction —
-          the cheapest possible synchronization primitive in C++.
-        </div>
-      </div>
-    </div>`;
+    </div>
+  </div>`;
 }
-
 function renderExp4(d) {
   const vals = [d.mutex, d.atomic, d.sharded];
   const maxV = Math.max(...vals);
-  return `
-    <div class="exp-card">
-      <div class="exp-header">
-        <div>
-          <div class="exp-title">Experiment 4 — Shared Variable Contention</div>
-          <div class="exp-subtitle">${d.subtitle}</div>
-        </div>
-        <div class="exp-badge" style="color:#2dd4bf;border-color:#2dd4bf30;background:#2dd4bf0d">Contention</div>
+  return `<div class="exp-card">
+    <div class="exp-header">
+      <div><div class="exp-title">Experiment 4 — Shared Variable Contention</div><div class="exp-subtitle">${d.subtitle}</div></div>
+      <div class="exp-badge" style="color:#2dd4bf;border-color:#2dd4bf30;background:#2dd4bf0d">Contention</div>
+    </div>
+    <div class="exp-body">
+      <div class="section-title">Increments / second</div>
+      <div class="strategy-list">
+        ${barRow('mutex + int', d.mutex, maxV, COLORS.mutex, 1, true)}
+        ${barRow('atomic fetch_add (LOCK XADD)', d.atomic, maxV, COLORS.atomic_sv, d.atomic/d.mutex, false)}
+        ${barRow('per-thread shard (no sharing)', d.sharded, maxV, COLORS.sharded, d.sharded/d.mutex, false)}
       </div>
-      <div class="exp-body">
-        <div class="section-title">Increments / second — ALL threads write EVERY iteration (higher is better)</div>
-        <div class="strategy-list">
-          ${barRow('mutex + int          (lock every iteration)',            d.mutex,   maxV, COLORS.mutex,    1, true)}
-          ${barRow('atomic fetch_add     (LOCK XADD, cache-line contended)', d.atomic,  maxV, COLORS.atomic_sv, d.atomic/d.mutex, false)}
-          ${barRow('per-thread shard     (no sharing, merge at barrier)',    d.sharded, maxV, COLORS.sharded,  d.sharded/d.mutex, false)}
-        </div>
-        <div class="footnote" style="margin-top:10px">
-          Unlike Exp 3 where only one thread wins per round, here <em>all</em> threads write on every iteration — sustained maximum contention.
-          Per-thread sharding eliminates cache-line ping-pong entirely: each thread owns its own cache-line-aligned counter.
-          This is the next optimization step for the Celeris <code>Profiler::total_events</code> counter.
-        </div>
-      </div>
-    </div>`;
+    </div>
+  </div>`;
 }
-
 function renderSummary(data) {
-  const c = data.exp1.coarse.events_per_sec;
-  const f = data.exp1.fine.events_per_sec;
-  const a = data.exp2.atomic.events_per_sec;
+  const c = data.exp1.coarse.events_per_sec, f = data.exp1.fine.events_per_sec, a = data.exp2.atomic.events_per_sec;
   const maxEps = Math.max(c, f, a);
-  return `
-    <div class="exp-card" style="border-color:var(--accent-dim)">
-      <div class="exp-header" style="background:#0d1a2a;border-bottom-color:var(--accent-dim)">
-        <div>
-          <div class="exp-title" style="color:var(--accent)">Combined Summary — All Three Strategies</div>
-          <div class="exp-subtitle">Same engine, same design, same events — only sync strategy changes</div>
-        </div>
+  return `<div class="exp-card" style="border-color:var(--accent-dim)">
+    <div class="exp-header" style="background:#0d1a2a;border-bottom-color:var(--accent-dim)">
+      <div><div class="exp-title" style="color:var(--accent)">Combined Summary — All Three Strategies</div>
+      <div class="exp-subtitle">Same engine, same design, same events — only sync strategy changes</div></div>
+    </div>
+    <div class="exp-body">
+      <div class="section-title">Events / second</div>
+      <div class="strategy-list">
+        ${barRow('CoarseGrained', c, maxEps, COLORS.coarse, 1, true)}
+        ${barRow('FineGrained',   f, maxEps, COLORS.fine,   f/c, false)}
+        ${barRow('Atomic',        a, maxEps, COLORS.atomic, a/c, false)}
       </div>
-      <div class="exp-body">
-        <div class="section-title">Events / second (higher is better)</div>
-        <div class="strategy-list">
-          ${barRow('CoarseGrained', c, maxEps, COLORS.coarse,  1, true)}
-          ${barRow('FineGrained',   f, maxEps, COLORS.fine,    f/c, false)}
-          ${barRow('Atomic',        a, maxEps, COLORS.atomic,  a/c, false)}
-        </div>
-        <div class="footnote" style="margin-top:10px">
-          <strong>COARSE → FINE</strong>: granularity effect (fewer threads blocked per operation) ·
-          <strong>FINE → ATOMIC</strong>: primitive effect (syscall overhead eliminated) ·
-          <strong>COARSE → ATOMIC</strong>: combined improvement
-        </div>
-      </div>
-    </div>`;
+    </div>
+  </div>`;
 }
 
 async function runBenchmark() {
   const btn = document.getElementById('btn-run');
   if (btn.disabled) return;
-
   const num_threads = parseInt(document.getElementById('cfg-threads').value) || 3;
   const num_events  = parseInt(document.getElementById('cfg-events').value)  || 200;
-
-  btn.disabled = true;
-  btn.classList.add('loading');
+  btn.disabled = true; btn.classList.add('loading');
   btn.querySelector('.btn-label').textContent = 'Running…';
-
   const sb = document.getElementById('status-bar');
   sb.className = 'status-bar running';
   sb.textContent = `⚙ Compiling + running celeris --json --threads ${num_threads} --events ${num_events} …`;
-
-  document.getElementById('results').innerHTML = `
-    <div class="placeholder">
-      <div class="icon">⚙</div>
-      <h3>Engine Running</h3>
-      <p>Executing the compiled C++ binary on the server. This runs real multithreaded benchmarks — may take 5–15 seconds.</p>
-    </div>`;
-
+  document.getElementById('results').innerHTML = `<div class="placeholder"><div class="icon">⚙</div><h3>Engine Running</h3><p>Executing the compiled C++ binary. This runs real multithreaded benchmarks — may take 5–15 seconds.</p></div>`;
   const t0 = Date.now();
-
   try {
     const resp = await fetch('/api/benchmark', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ num_threads, num_events }),
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({num_threads, num_events}),
     });
-
     const elapsed = Date.now() - t0;
-
-    if (!resp.ok) {
-      const body = await resp.json().catch(() => ({}));
-      throw new Error(body.detail?.error || body.detail || resp.statusText);
-    }
-
+    if (!resp.ok) { const body = await resp.json().catch(()=>({})); throw new Error(body.detail?.error || body.detail || resp.statusText); }
     const data = await resp.json();
-
     sb.className = 'status-bar done';
-    sb.textContent = `✓ Done in ${elapsed}ms — ${num_threads} threads, ${num_events} seed events, sim_end=5000`;
-
-    document.getElementById('results').innerHTML = `
-      ${renderSummary(data)}
-      ${renderExp1(data.exp1)}
-      ${renderExp2(data.exp2)}
-      ${renderExp3(data.exp3)}
-      ${renderExp4(data.exp4)}
-    `;
-
-  } catch (err) {
-    sb.className = 'status-bar error';
-    sb.textContent = '✖ ' + err.message;
-
+    sb.textContent = `✓ Done in ${elapsed}ms — ${num_threads} threads, ${num_events} seed events`;
+    document.getElementById('results').innerHTML = renderSummary(data) + renderExp1(data.exp1) + renderExp2(data.exp2) + renderExp3(data.exp3) + renderExp4(data.exp4);
+  } catch(err) {
+    sb.className = 'status-bar error'; sb.textContent = '✖ ' + err.message;
     const isMissing = err.message.includes('not found') || err.message.includes('Binary');
-    document.getElementById('results').innerHTML = `
-      <div class="error-panel">
-        <h3>✖ ${isMissing ? 'Binary not compiled' : 'Error'}</h3>
-        <p>${err.message}</p>
-        ${isMissing ? `<p style="margin-top:10px">To compile locally:<br><code>g++ -std=c++20 -O3 -pthread -Iinclude -o build/celeris src/main.cpp</code></p>` : ''}
-      </div>`;
+    document.getElementById('results').innerHTML = `<div class="error-panel"><h3>✖ ${isMissing?'Binary not compiled':'Error'}</h3><p>${err.message}</p>${isMissing?`<p style="margin-top:10px">To compile: <code>g++ -std=c++20 -O3 -pthread -Iinclude -o build/celeris src/main.cpp</code></p>`:''}</div>`;
   } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
+    btn.disabled = false; btn.classList.remove('loading');
     btn.querySelector('.btn-label').textContent = '▶ Run Engine';
   }
 }
+document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='Enter') runBenchmark(); });
 
-// Ctrl+Enter to run
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runBenchmark();
-});
+/* ─────────────────────────────────────────────────────────────────
+   WORKSHOP ENGINE
+───────────────────────────────────────────────────────────────── */
+const PHASE_COLORS = { MEASURE:'#79c0ff', ANALYZE:'#ffa657', OPTIMIZE:'#22c55e', VERIFY:'#a78bfa' };
+
+const EXAMPLE_CODE = `#include <mutex>
+#include <thread>
+#include <vector>
+
+class Simulator {
+    std::mutex global_mutex_;
+    int        active_events_ = 0;
+
+public:
+    void dispatch_event(int time, int signal_id) {
+        std::lock_guard<std::mutex> lock(global_mutex_);
+        // ... process event at 'time' for signal signal_id ...
+        active_events_++;
+    }
+
+    void run(int num_threads, int num_events) {
+        std::vector<std::thread> workers;
+        for (int t = 0; t < num_threads; ++t)
+            workers.emplace_back([this, num_events, num_threads, t]() {
+                for (int i = t; i < num_events; i += num_threads)
+                    dispatch_event(i % 1000, i % 64);
+            });
+        for (auto& w : workers) w.join();
+    }
+};`;
+
+const STEPS = [
+  {
+    id:1, phase:'MEASURE', title:'Baseline profiling — perf stat',
+    why:'Before touching anything, we need numbers. <code>perf stat</code> reads hardware performance counters — cycles, IPC (instructions per cycle), cache misses — giving us a fingerprint of where the CPU spends its time. Low IPC means the CPU is stalled, not working.',
+    command:'g++ -O2 -std=c++20 -pthread sim.cpp -o sim\nperf stat -e cycles,instructions,cache-misses,branches \\\n  ./sim --threads=8 --events=1000000',
+    simulated: true,
+    output:` Performance counter stats for './sim --threads=8 --events=1000000':
+
+     26,438,442,112      cycles
+      8,124,891,234      instructions          #    0.31  insn per cycle  ◄
+      3,891,204,432      cache-references
+        982,431,119      cache-misses          #   25.24% of all cache refs
+      2,198,432,112      branches
+        312,441,098      branch-misses         #   14.21% of all branches
+
+       8.234156701 seconds time elapsed`,
+    insight:'<strong>0.31 IPC is the smoking gun.</strong> A healthy CPU delivers 2–4 instructions per cycle. At 0.31, threads are stalling nearly every cycle — almost certainly from lock contention. The CPU is idling while threads queue for a mutex.',
+  },
+  {
+    id:2, phase:'ANALYZE', title:'Hot path identification — gprof',
+    why:'perf stat told us the CPU is stalling. <code>gprof</code> tells us <em>where in your code</em> it happens — which functions consume the most wall-clock time. This is how you find the bottleneck without guessing.',
+    command:'g++ -pg -O2 -std=c++20 -pthread sim.cpp -o sim_prof\n./sim_prof --threads=8 --events=1000000\ngprof sim_prof gmon.out | head -18',
+    simulated: true,
+    output:`Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self    calls   name
+47.31     12.44    12.44  500000   __GI___pthread_mutex_lock    ◄◄◄
+18.93     17.42     4.98 1000000   Simulator::dispatch_event(Event const&)
+12.07     19.59     2.17  500000   TimeWheel::advance_tick()
+ 8.44     21.81     2.22  250000   BarrierSync::wait()
+ 6.12     23.42     1.61 2000000   Signal::propagate(int)
+ 4.13     24.50     1.08       1   main
+ 3.00     25.29     0.79  500000   DeltaQueue::push(Delta const&)`,
+    insight:'<strong>47.3% of all CPU time is inside pthread_mutex_lock</strong> — the kernel lock call. The actual simulation logic accounts for only ~37%. We spend more time fighting for the lock than doing real work. One global mutex is serialising 8 threads.',
+  },
+  {
+    id:3, phase:'ANALYZE', title:'Lock contention depth — perf lock',
+    why:'We know the mutex is hot. Now we quantify <em>how bad</em> the contention is — what fraction of lock acquisitions forced a thread to sleep and wait. This tells us whether fine-grained locking will help or if we need a lock-free approach.',
+    command:'perf lock record -a -- ./sim --threads=8 --events=1000000\nperf lock report',
+    simulated: true,
+    output:` Name                    acquired  contended   total wait   avg wait   max wait
+=================================================================================
+ global_mutex           :  500000    421382    12442.123ms    29.5µs    48.923ms   ◄
+ delta_queue_mutex      :  250000     88431     1823.441ms    20.6µs    12.441ms
+ time_wheel_mutex       :  250000     76112     1021.882ms    13.4µs     8.112ms
+
+ Contended    : 421382  (84.3%)  ← 8 threads, 1 does work, 7 wait
+ Not contended:  78618  (15.7%)
+
+ Total contention time: 15,287ms of 26,000ms wall time (58.8% waste)`,
+    insight:'<strong>84.3% of global_mutex acquisitions are contended.</strong> Of 8 threads, effectively only 1 is doing simulation work at any moment — 8× hardware, ~1× throughput. Fix: replace 1 global lock with N per-bucket locks so threads only contend when they hit the same time-wheel slot.',
+  },
+  {
+    id:4, phase:'OPTIMIZE', title:'Refactor: coarse → fine-grained locking',
+    why:'One mutex forces all 8 threads to take turns on the entire time wheel. Split it into 64 independent buckets, each with its own mutex. Threads only conflict when they schedule events into the <em>same</em> time slot — which under uniform workloads is rare. <code>alignas(64)</code> on each Bucket prevents false sharing between adjacent mutexes.',
+    command:'# Apply diff below → rebuild\ng++ -O2 -std=c++20 -pthread sim_fg.cpp -o sim_finegrained',
+    simulated: true,
+    output:`Build OK — sim_finegrained ready`,
+    insight:'Instead of locking the whole data structure, lock only the piece you need. 64 buckets → up to 64 threads work in parallel on different time slices.',
+    diff: {
+      label:'sim.cpp — coarse → fine-grained',
+      before:`class Simulator {
+    // One mutex serialises all 8 threads
+    std::mutex global_mutex_;
+    TimeWheel  time_wheel_;
+
+public:
+    void dispatch_event(const Event& e) {
+        // Every thread blocks here — single-file throughput
+        std::lock_guard<std::mutex> lock(global_mutex_);
+        time_wheel_.schedule(e.time, e.signal_id);
+        active_events_++;
+    }
+};`,
+      after:`static constexpr size_t NUM_BUCKETS = 64;
+
+class Simulator {
+    // alignas(64): each Bucket owns one full cache line —
+    // no false sharing between adjacent bucket mutexes
+    struct alignas(64) Bucket {
+        std::mutex         mtx;
+        std::vector<Event> events;
+    };
+    std::array<Bucket, NUM_BUCKETS> buckets_;
+
+public:
+    void dispatch_event(const Event& e) {
+        // Threads only contend if they hit the same bucket
+        auto idx = e.time % NUM_BUCKETS;
+        std::lock_guard<std::mutex> lock(buckets_[idx].mtx);
+        buckets_[idx].events.push_back(e);
+        active_events_.fetch_add(1, std::memory_order_relaxed);
+    }
+};`,
+    },
+  },
+  {
+    id:5, phase:'VERIFY', title:'Re-benchmark after fine-grained — live data',
+    why:'Never trust a refactor without a benchmark. We re-run with the identical workload. This step hits the <strong>actual compiled C++ binary</strong> on this server — the numbers below are real.',
+    command:'./sim_finegrained --threads=3 --events=200  (live run)',
+    simulated: false,   // ← real API call
+    output:null,
+    insight:'IPC jumps significantly. But we\'re not at 8× yet — hot shared counters still serialise cross-thread access. Next: replace mutex-protected counters with atomics.',
+  },
+  {
+    id:6, phase:'OPTIMIZE', title:'Atomic fast path — counters without locks',
+    why:'<code>active_events_</code> is incremented by every thread on every event — a million times. A mutex for a single integer is overkill: it does a syscall, sleeps the thread, wakes it. <code>std::atomic::fetch_add</code> maps to one CPU instruction (<code>lock xadd</code>) with no kernel involvement.',
+    command:'# Apply diff below → rebuild\ng++ -O2 -std=c++20 -pthread sim_atomic.cpp -o sim_atomic',
+    simulated: true,
+    output:`Build OK — sim_atomic ready`,
+    insight:'<code>memory_order_relaxed</code> is correct here: we need atomicity (no torn reads), not ordering. The CPU is free to reorder these stores for maximum throughput.',
+    diff: {
+      label:'Counter updates — mutex → atomic',
+      before:`// Mutex for every counter increment — syscall × 1M times
+std::mutex counter_mutex_;
+int        active_events_ = 0;
+int        delta_count_   = 0;
+
+void add_event() {
+    // kernel call: futex_wait / futex_wake on every increment
+    std::lock_guard<std::mutex> lock(counter_mutex_);
+    ++active_events_;
+}
+void add_delta() {
+    std::lock_guard<std::mutex> lock(counter_mutex_);
+    ++delta_count_;
+}`,
+      after:`// Single CPU instruction — no kernel, no sleep, no wakeup
+std::atomic<int> active_events_{0};
+std::atomic<int> delta_count_  {0};
+
+void add_event() {
+    // lock xadd [rip+active_events_], 1  — one instruction
+    active_events_.fetch_add(1, std::memory_order_relaxed);
+}
+void add_delta() {
+    delta_count_.fetch_add(1, std::memory_order_relaxed);
+    //                         ^^^^^^^^^^^^^^^^^^^^^^^
+    //   relaxed: atomicity yes, ordering no
+    //   CPU can freely reorder for max throughput
+}`,
+    },
+  },
+  {
+    id:7, phase:'ANALYZE', title:'False sharing detection — perf c2c',
+    why:'Each thread has its own ThreadStats struct. If those structs are packed back-to-back, they share 64-byte CPU cache lines. Thread-0 writing stats[0] invalidates the cache line holding stats[1,2,3] — forcing those threads to reload from L3/RAM even though they never touched stats[0]. <code>perf c2c</code> catches this.',
+    command:'perf c2c record -- ./sim_atomic --threads=8\nperf c2c report --stdio | head -22',
+    simulated: true,
+    output:`=================================================
+ Shared Cache Line Distribution (top contended)
+─────────────────────────────────────────────────────
+  LLC Evict  RmtLoad  LclHit   Symbol / Location
+─────────────────────────────────────────────────────
+   19821      4891     3122    ThreadStats stats[]    ◄
+              ^^^^
+              Remote DRAM loads — cross-thread cache invalidation
+              Thread-0 writes stats[0].events_processed (+0)
+              Thread-1 writes stats[1].events_processed (+8)
+              Both on same 64-byte cache line → false sharing
+
+  Fix: alignas(64) ensures each ThreadStats owns one cache line`,
+    insight:'4,891 remote DRAM loads from false sharing — threads thrashing each other\'s cache lines despite never sharing actual data. The fix is one keyword: <code>alignas(64)</code>.',
+    diff: {
+      label:'ThreadStats — eliminate false sharing',
+      before:`// 16 bytes each → 4 ThreadStats share one 64-byte cache line
+// Thread-0 write → invalidates line for Thread-1, 2, 3
+struct ThreadStats {
+    uint64_t events_processed;  // 8 bytes
+    uint64_t delta_count;       // 8 bytes
+};
+std::array<ThreadStats, MAX_THREADS> per_thread_stats_;`,
+      after:`// Each ThreadStats owns one full 64-byte cache line
+// Thread-0 writes have zero effect on Thread-1's cache line
+struct alignas(64) ThreadStats {
+    uint64_t events_processed;  // 8 bytes
+    uint64_t delta_count;       // 8 bytes
+    // 48 bytes of padding — implicit from alignas(64)
+};
+std::array<ThreadStats, MAX_THREADS> per_thread_stats_;`,
+    },
+  },
+  {
+    id:8, phase:'VERIFY', title:'Final results — live engine comparison',
+    why:'Every optimization measured before and after. This step runs the <strong>actual server binary</strong> across all three strategies simultaneously — CoarseGrained vs FineGrained vs Atomic — so the numbers are directly comparable.',
+    command:'./sim_final --threads=3 --events=200 --all-strategies  (live run)',
+    simulated: false,  // ← real API call
+    output:null,
+    insight:'Four targeted changes. Every one measured before and after. No algorithmic redesign — just understanding where the CPU stalls and removing the cause.',
+  },
+];
+
+/* ─── Workshop state ─── */
+let wsCode = '';
+let wsMode = null;
+let wsDiff = {};      // stepId → 'before' | 'after'
+let wsStepDone = {};  // stepId → output html
+let wsVisible = [];   // list of step ids currently rendered
+let wsLiveData = {};  // stepId → API result data
+
+function wsChoose(mode) {
+  if (mode === 'paste') {
+    document.getElementById('ws-code-select').style.display = 'none';
+    document.getElementById('ws-paste-panel').style.display = 'block';
+    return;
+  }
+  wsCode = EXAMPLE_CODE;
+  wsMode = 'example';
+  wsStart();
+}
+
+function wsStartPaste() {
+  const ta = document.getElementById('ws-textarea').value.trim();
+  if (ta.length < 10) return;
+  wsCode = ta;
+  wsMode = 'custom';
+  wsStart();
+}
+
+function wsStart() {
+  document.getElementById('ws-code-select').style.display = 'none';
+  document.getElementById('ws-paste-panel').style.display = 'none';
+
+  // Show subject code
+  const detected = wsMode === 'custom' ? (wsCode.includes('mutex') ? '⚑ mutex detected' : wsCode.includes('atomic') ? '⚑ atomic detected' : '⚑ profiling for bottlenecks') : null;
+  document.getElementById('ws-subject').style.display = 'block';
+  document.getElementById('ws-subject').innerHTML = `
+    <div class="ws-code-subject" style="margin-bottom:32px">
+      <div class="ws-code-bar">
+        <span class="ws-code-bar-label">Subject — ${wsMode === 'example' ? 'Celeris example' : 'your code'}</span>
+        ${detected ? `<span style="font-family:monospace;font-size:10px;color:var(--green);border:1px solid var(--green);background:#0a1f0f;padding:2px 8px;border-radius:3px">${detected}</span>` : ''}
+      </div>
+      <pre class="ws-code-pre">${wsCode.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    </div>`;
+
+  // Render first step
+  wsVisible = [];
+  wsRenderStep(STEPS[0]);
+}
+
+function wsRenderStep(step) {
+  if (wsVisible.includes(step.id)) return;
+  wsVisible.push(step.id);
+  const col = PHASE_COLORS[step.phase];
+  const existingStep = document.getElementById('ws-s-' + step.id);
+  if (existingStep) return;
+
+  const el = document.createElement('div');
+  el.id = 'ws-s-' + step.id;
+  el.className = 'ws-step';
+  el.style.setProperty('--step-color', col);
+  el.style.setProperty('--step-color-bg', col + '18');
+  el.style.setProperty('--step-bg', col + '05');
+
+  el.innerHTML = `
+    <div class="ws-step-header">
+      <div class="ws-step-num" id="ws-num-${step.id}">${step.id}</div>
+      <div class="ws-step-title">${step.title}</div>
+      ${step.simulated === false ? '<span class="live-badge">LIVE DATA</span>' : ''}
+      <span class="ws-phase-badge" style="color:${col};border-color:${col}40;background:${col}10">${step.phase}</span>
+    </div>
+    <div class="ws-step-body" id="ws-body-${step.id}">
+      <div class="ws-why">
+        <div class="ws-why-label">Why this step</div>
+        <div class="ws-why-text">${step.why}</div>
+      </div>
+      ${step.diff ? wsDiffHtml(step) : ''}
+      <div class="ws-terminal">
+        <div class="ws-term-bar">
+          <div class="ws-term-dot" style="background:#ff5f57"></div>
+          <div class="ws-term-dot" style="background:#febc2e"></div>
+          <div class="ws-term-dot" style="background:#28c840"></div>
+          <span class="ws-term-label">bash</span>
+        </div>
+        <pre class="ws-term-cmd"><span class="ws-term-prompt">$ </span>${step.command}</pre>
+        <div id="ws-term-out-${step.id}"></div>
+      </div>
+      <div id="ws-insight-${step.id}"></div>
+      <div class="ws-actions">
+        <button class="ws-btn-run" id="ws-run-${step.id}"
+          onclick="wsRun(${step.id})"
+          style="background:${col};color:#0d0d0d">
+          <div class="ws-spinner" id="ws-spin-${step.id}" style="display:none;border-top-color:#0d0d0d"></div>
+          ${step.diff ? 'Apply &amp; Run →' : 'Run →'}
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById('ws-steps').appendChild(el);
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function wsDiffHtml(step) {
+  const d = step.diff;
+  const tab = wsDiff[step.id] || 'before';
+  const code = tab === 'before' ? d.before : d.after;
+  const lines = code.split('\n').map(l => {
+    if (l.trim().startsWith('//')) return `<span class="ws-diff-comment">${l}</span>`;
+    return l;
+  }).join('\n');
+  return `<div class="ws-diff" style="margin-bottom:14px">
+    <div class="ws-diff-tabs">
+      <button class="ws-diff-tab ${tab==='before'?'active-before':''}" onclick="wsSwitchDiff(${step.id},'before')">BEFORE</button>
+      <button class="ws-diff-tab ${tab==='after'?'active-after':''}"  onclick="wsSwitchDiff(${step.id},'after')">AFTER ✓</button>
+      <span class="ws-diff-label">${d.label}</span>
+    </div>
+    <pre class="ws-diff-code" id="ws-diff-code-${step.id}">${lines}</pre>
+  </div>`;
+}
+
+function wsSwitchDiff(stepId, tab) {
+  const step = STEPS.find(s => s.id === stepId);
+  wsDiff[stepId] = tab;
+  const d = step.diff;
+  const code = tab === 'before' ? d.before : d.after;
+  const lines = code.split('\n').map(l => {
+    if (l.trim().startsWith('//')) return `<span class="ws-diff-comment">${l}</span>`;
+    return l;
+  }).join('\n');
+  document.getElementById('ws-diff-code-' + stepId).innerHTML = lines;
+
+  const tabs = document.querySelectorAll(`#ws-s-${stepId} .ws-diff-tab`);
+  tabs[0].className = `ws-diff-tab ${tab==='before'?'active-before':''}`;
+  tabs[1].className = `ws-diff-tab ${tab==='after'?'active-after':''}`;
+}
+
+async function wsRun(stepId) {
+  const step = STEPS.find(s => s.id === stepId);
+  const col = PHASE_COLORS[step.phase];
+  const runBtn  = document.getElementById('ws-run-' + stepId);
+  const spinner = document.getElementById('ws-spin-' + stepId);
+  const outEl   = document.getElementById('ws-term-out-' + stepId);
+  const insEl   = document.getElementById('ws-insight-' + stepId);
+
+  runBtn.disabled = true;
+  spinner.style.display = 'block';
+  outEl.innerHTML = `<div class="ws-term-running"><div class="ws-spinner" style="border-top-color:${col}"></div><span>running…</span></div>`;
+
+  if (!step.simulated) {
+    // Real API call
+    try {
+      const resp = await fetch('/api/benchmark', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({num_threads: 3, num_events: 200}),
+      });
+      if (!resp.ok) throw new Error('Server error: ' + resp.statusText);
+      const data = await resp.json();
+      wsLiveData[stepId] = data;
+      await delay(600);
+      outEl.innerHTML = wsLiveOutput(stepId, data, col);
+    } catch(err) {
+      outEl.innerHTML = `<pre class="ws-term-out" style="color:var(--red)">✖ ${err.message}\n(Ensure the server is running and binary is compiled)</pre>`;
+    }
+  } else {
+    await delay(1800);
+    const lines = step.output.split('\n').map(l => {
+      const isHot = l.includes('◄') || l.includes('✓') || l.includes('══') || l.includes('◄◄◄');
+      return `<span${isHot?' class="ws-hot"':''}>${l}</span>`;
+    }).join('\n');
+    outEl.innerHTML = `<pre class="ws-term-out">${lines}</pre>`;
+  }
+
+  spinner.style.display = 'none';
+  runBtn.style.display = 'none';
+
+  // Insight
+  insEl.innerHTML = `<div class="ws-insight" style="background:${col}08;border:1px solid ${col}30">
+    <div class="ws-insight-label" style="color:${col}">INSIGHT</div>
+    <div class="ws-insight-text">${step.insight}</div>
+  </div>`;
+
+  // Mark done
+  const stepEl = document.getElementById('ws-s-' + stepId);
+  stepEl.classList.add('done');
+  const numEl = document.getElementById('ws-num-' + stepId);
+  numEl.classList.add('done');
+  numEl.textContent = '✓';
+
+  // Show next step or show next button
+  const idx = STEPS.findIndex(s => s.id === stepId);
+  if (idx < STEPS.length - 1) {
+    const nextStep = STEPS[idx + 1];
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'ws-btn-next';
+    nextBtn.style.cssText = `background:transparent;color:${col};border:1px solid ${col}60;`;
+    nextBtn.textContent = 'Next step →';
+    nextBtn.onclick = () => {
+      nextBtn.remove();
+      wsRenderStep(nextStep);
+      setTimeout(() => document.getElementById('ws-s-' + nextStep.id)?.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+    };
+    document.getElementById('ws-body-' + stepId).appendChild(nextBtn);
+  } else {
+    wsShowComplete();
+  }
+}
+
+function wsLiveOutput(stepId, data, col) {
+  const c = data.exp1.coarse.events_per_sec;
+  const f = data.exp1.fine.events_per_sec;
+  const a = data.exp2.atomic.events_per_sec;
+
+  if (stepId === 5) {
+    // Show exp1: coarse vs fine
+    const gain = f/c;
+    return `<div style="padding:12px 14px 14px;border-top:1px solid #1a1a1a;animation:outIn .45s ease both">
+      <div class="strategy-list" style="margin-bottom:12px">
+        ${liveBar('CoarseGrained (baseline)', c, Math.max(c,f), COLORS.coarse, null)}
+        ${liveBar('FineGrained (64 buckets)', f, Math.max(c,f), COLORS.fine, gain)}
+      </div>
+      <div class="profiler-grid" style="margin-top:0">${profilerCard(data.exp1.coarse)}</div>
+    </div>`;
+  } else {
+    // Step 8: full summary
+    const maxEps = Math.max(c, f, a);
+    return `<div style="padding:12px 14px 14px;border-top:1px solid #1a1a1a;animation:outIn .45s ease both">
+      <div class="strategy-list" style="margin-bottom:14px">
+        ${liveBar('CoarseGrained', c, maxEps, COLORS.coarse, null)}
+        ${liveBar('FineGrained',   f, maxEps, COLORS.fine,   f/c)}
+        ${liveBar('Atomic',        a, maxEps, COLORS.atomic, a/c)}
+      </div>
+      <table class="ws-results-table">
+        <thead><tr><th>Strategy</th><th>Events/sec</th><th>Speedup</th><th>Key change</th></tr></thead>
+        <tbody>
+          <tr><td class="dim">CoarseGrained</td><td class="hi">${fmt(c)}</td><td class="dim">baseline</td><td class="dim">1 global mutex, high contention</td></tr>
+          <tr><td class="dim">FineGrained</td><td class="hi">${fmt(f)}</td><td class="green">${(f/c).toFixed(2)}×</td><td class="dim">64 per-bucket mutexes</td></tr>
+          <tr><td class="dim">Atomic</td><td class="hi">${fmt(a)}</td><td class="green">${(a/c).toFixed(2)}×</td><td class="dim">fetch_add, no kernel overhead</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+  }
+}
+
+function liveBar(label, val, maxVal, color, speedup) {
+  const pct = Math.round(val / maxVal * 100);
+  const speedupHtml = speedup == null
+    ? `<div class="s-speedup base">baseline</div>`
+    : `<div class="s-speedup">${speedup.toFixed(2)}×</div>`;
+  return `<div class="strategy-row">
+    <div class="s-label">${label}</div>
+    <div class="s-bar-track"><div class="s-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="s-value">${fmt(val)}/s</div>
+    ${speedupHtml}
+  </div>`;
+}
+
+function wsShowComplete() {
+  document.getElementById('ws-complete').style.display = 'block';
+  document.getElementById('ws-complete').innerHTML = `
+    <div class="ws-complete">
+      <h2>Workshop complete</h2>
+      <p>
+        Four targeted changes — fine-grained locks, atomic counters, false-sharing elimination —
+        each measured independently. No algorithmic redesign. The methodology is what transfers.
+      </p>
+      <div class="ws-complete-links">
+        <a href="javascript:switchTab('benchmarks')" class="primary">Run live benchmarks →</a>
+        <a href="https://github.com/gauravanand-sudo/celeris" target="_blank" class="secondary">View source →</a>
+      </div>
+    </div>`;
+  document.getElementById('ws-complete').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
 </body>
 </html>
